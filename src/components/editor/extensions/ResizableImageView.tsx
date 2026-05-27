@@ -64,7 +64,7 @@ export function ResizableImageView(props: NodeViewProps) {
         >
             <div className={cn(
                 "min-h-[50px] flex flex-col items-center justify-center bg-background mx-auto transition-all",
-                fullWidth ? "w-full" : "max-w-3xl"
+                fullWidth ? "w-full" : "w-auto max-w-full"
             )}>
                 {missingLocal ? (
                     <div className="w-full py-12 flex flex-col items-center justify-center gap-4 bg-muted-bg rounded border border-border text-muted">

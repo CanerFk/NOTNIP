@@ -1,6 +1,7 @@
 import { useEditor, EditorContent } from '@tiptap/react';
 import { Extension } from '@tiptap/core';
 import { TextSelection, AllSelection } from '@tiptap/pm/state';
+import { cn } from '../../lib/utils';
 
 import Document from '@tiptap/extension-document';
 import Paragraph from '@tiptap/extension-paragraph';
@@ -221,6 +222,7 @@ export function Editor() {
     const updatePageIcon = useStore(state => state.updatePageIcon);
     const setActivePage = useStore(state => state.setActivePage);
     const setWordCount = useStore(state => state.setWordCount);
+    const readableLineLength = useStore(state => state.themePreferences.readableLineLength);
     const [title, setTitle] = useState('');
     const [isContentLoading, setIsContentLoading] = useState(false);
     const [isExporting, setIsExporting] = useState(false);
@@ -471,7 +473,7 @@ export function Editor() {
         ],
         editorProps: {
             attributes: {
-                class: 'prose mx-auto focus:outline-none max-w-3xl pb-32 min-h-screen',
+                class: 'prose mx-auto focus:outline-none max-w-none pb-32 min-h-screen',
             },
             scrollThreshold: { top: 120, bottom: 120, left: 0, right: 0 },
             scrollMargin: { top: 120, bottom: 120, left: 0, right: 0 },
@@ -693,7 +695,10 @@ export function Editor() {
                 style={{ overflowAnchor: 'none' }}
                 onClick={() => editor?.chain().focus().run()}
             >
-                <div className="max-w-3xl mx-auto w-full pt-8 px-6 sm:px-8 relative">
+                <div className={cn(
+                    "mx-auto w-full pt-8 relative transition-all duration-300",
+                    readableLineLength ? "max-w-4xl px-6 sm:px-8" : "max-w-none px-6 sm:px-12 md:px-24 xl:px-48"
+                )}>
                     <div className="flex items-center mb-4 group gap-2" onClick={(e) => e.stopPropagation()}>
                         {activePageMeta && (
                             <IconPicker

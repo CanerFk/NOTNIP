@@ -43,6 +43,7 @@ interface StoreState {
         editorTitleColor: string;
         fontBody: string;
         fontCode: string;
+        readableLineLength: boolean;
     };
     updateTheme: (prefs: Partial<StoreState['themePreferences']>) => void;
 
@@ -123,6 +124,7 @@ export const useStore = create<StoreState>()(
                 editorTitleColor: '#e78a4e',
                 fontBody: 'Inter',
                 fontCode: 'JetBrains Mono',
+                readableLineLength: true,
             },
             updateTheme: (prefs) => set((state) => ({
                 themePreferences: { ...state.themePreferences, ...prefs }

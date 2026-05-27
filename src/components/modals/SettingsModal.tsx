@@ -79,6 +79,24 @@ export function SettingsModal() {
 
                     {activeTab === 'appearance' && (
                         <div className="space-y-8 animate-in fade-in slide-in-from-left-4 duration-300">
+                            {/* Layout Settings */}
+                            <div>
+                                <h3 className="text-xs font-mono font-bold text-muted mb-4 uppercase tracking-wider">LAYOUT</h3>
+                                <label className="flex items-center gap-3 cursor-pointer group w-fit">
+                                    <div className="relative">
+                                        <input
+                                            type="checkbox"
+                                            className="sr-only"
+                                            checked={themePreferences.readableLineLength}
+                                            onChange={(e) => updateTheme({ readableLineLength: e.target.checked })}
+                                        />
+                                        <div className={cn("block w-10 h-5 border-2 border-border shadow-retro-sm transition-all", themePreferences.readableLineLength ? "bg-accent" : "bg-element")} />
+                                        <div className={cn("absolute left-1 top-1 w-2.5 h-2.5 transition-transform", themePreferences.readableLineLength ? "translate-x-4 bg-background" : "bg-main")} />
+                                    </div>
+                                    <span className="text-sm font-mono text-main group-hover:text-accent transition-colors select-none">Readable Line Length</span>
+                                </label>
+                            </div>
+
                             {/* Accent Color */}
                             <ColorSection
                                 label="GLOBAL ACCENT"
