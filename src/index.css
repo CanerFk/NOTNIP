@@ -39,6 +39,8 @@
   --bevel-dark: #1d2021;
   --font-body: 'Inter', sans-serif;
   --font-code: 'Fira Code', monospace;
+
+  --inline-code-bg: #45403d;
 }
 
 .light {
@@ -75,6 +77,8 @@
 
   --bevel-light: #ffffff;
   --bevel-dark: #7c6f64;
+
+  --inline-code-bg: #d5c4a1;
 }
 
 @layer base {
@@ -588,7 +592,15 @@
 .ProseMirror a {
   color: var(--gruv-blue);
   text-decoration: underline;
-  cursor: pointer;
+  text-decoration-color: color-mix(in srgb, var(--gruv-blue) 40%, transparent);
+  text-underline-offset: 2px;
+  transition: color 0.15s ease, text-decoration-color 0.15s ease;
+  cursor: text;
+}
+
+.ProseMirror a:hover {
+  color: var(--gruv-aqua);
+  text-decoration-color: var(--gruv-aqua);
 }
 
 /* Placeholder */
@@ -885,4 +897,173 @@
   display: inline-flex !important;
   align-items: center !important;
   flex: 1;
+}
+
+/* ===========================================
+   SEARCH BAR - Gruvbox Retro Theme (Refined)
+   =========================================== */
+.search-bar-container {
+  position: absolute;
+  top: 48px;
+  right: 32px;
+  z-index: 100;
+  width: 320px;
+  background: var(--bg-element);
+  border: 2px solid var(--border-color);
+  box-shadow: 4px 4px 0 0 var(--shadow-color);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px;
+  
+  opacity: 0;
+  transform: translateY(-10px);
+  pointer-events: none;
+  transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.search-bar-container.search-bar-open {
+  opacity: 1;
+  transform: translateY(0);
+  pointer-events: auto;
+}
+
+.search-bar-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.search-input-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex: 1;
+  background: var(--bg-primary);
+  border: 2px solid var(--border-color);
+  padding: 4px 8px;
+  box-shadow: inset 2px 2px 0 0 rgba(0, 0, 0, 0.1);
+}
+
+.search-input-wrapper input {
+  flex: 1;
+  background: transparent;
+  border: none;
+  outline: none;
+  color: var(--text-main);
+  font-family: var(--font-code), monospace;
+  font-size: 0.75rem;
+  min-width: 0;
+}
+
+.search-input-wrapper input::placeholder {
+  color: var(--text-muted);
+  opacity: 0.6;
+}
+
+.search-counter {
+  color: var(--text-muted);
+  font-family: var(--font-code), monospace;
+  font-size: 0.65rem;
+  white-space: nowrap;
+  user-select: none;
+}
+
+.search-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.search-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 24px;
+  min-width: 24px;
+  background: var(--bg-primary);
+  border: 2px solid var(--border-color);
+  color: var(--text-main);
+  cursor: pointer;
+  transition: all 0.1s;
+  box-shadow: 2px 2px 0 0 var(--shadow-color);
+}
+
+.search-btn-text {
+  padding: 0 6px;
+  font-family: var(--font-code), monospace;
+  font-size: 0.65rem;
+  font-weight: bold;
+}
+
+.search-btn:hover:not(:disabled) {
+  background: var(--gruv-yellow);
+  color: var(--bg-primary);
+  border-color: var(--gruv-yellow);
+  transform: translate(-1px, -1px);
+  box-shadow: 3px 3px 0 0 var(--shadow-color);
+}
+
+.search-btn.replace-hover:hover:not(:disabled) {
+  background: var(--gruv-blue);
+  border-color: var(--gruv-blue);
+}
+
+.search-btn:active:not(:disabled) {
+  transform: translate(2px, 2px) !important;
+  box-shadow: none !important;
+}
+
+.search-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  box-shadow: none;
+  transform: translate(2px, 2px);
+}
+
+.search-close-btn:hover:not(:disabled) {
+  background: var(--gruv-red);
+  color: var(--bg-primary);
+  border-color: var(--gruv-red);
+}
+
+/* Search Highlights */
+.search-highlight {
+  background-color: color-mix(in srgb, var(--gruv-yellow) 30%, transparent);
+  outline: 1px solid color-mix(in srgb, var(--gruv-yellow) 50%, transparent);
+}
+
+@keyframes search-pulse {
+  0% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--gruv-orange) 60%, transparent); }
+  70% { box-shadow: 0 0 0 6px transparent; }
+  100% { box-shadow: 0 0 0 0 transparent; }
+}
+
+.search-highlight-active {
+  background-color: color-mix(in srgb, var(--gruv-orange) 55%, transparent);
+  outline: 2px solid var(--gruv-orange);
+  animation: search-pulse 1s infinite;
+}
+
+/* ===========================================
+   INLINE CODE
+   =========================================== */
+.ProseMirror code {
+  background-color: var(--inline-code-bg);
+  color: var(--gruv-orange);
+  font-family: var(--font-code), monospace;
+  font-size: 0.85em;
+  padding: 0.1em 0.35em;
+  border: 1px solid var(--border-color);
+  box-decoration-break: clone;
+  -webkit-box-decoration-break: clone;
+}
+
+/* Don't apply inline code styles to code blocks */
+.ProseMirror pre code {
+  background-color: transparent;
+  color: inherit;
+  font-size: inherit;
+  padding: 0;
+  border: none;
 }

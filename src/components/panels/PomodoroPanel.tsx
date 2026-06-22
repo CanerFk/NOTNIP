@@ -166,48 +166,50 @@ export function PomodoroPanel() {
                     </div>
                 </div>
 
-                <div className="pt-2 flex gap-4 pb-1 justify-center">
+                <div className="pt-2 flex gap-2 pb-1">
                     <button
                         onClick={toggle}
-                        className="w-full max-w-[100px] h-12 flex items-center justify-center font-bold text-xl uppercase tracking-widest bg-element border-3 border-border hover:bg-gruv-green hover:border-gruv-green hover:text-bg-primary transition-all shadow-[4px_4px_0_0_var(--shadow-color)] active:translate-y-[4px] active:translate-x-[4px] active:shadow-none"
+                        className="flex-1 h-11 flex items-center justify-center gap-2 font-bold text-sm uppercase tracking-widest bg-element border-2 border-border hover:bg-gruv-green hover:border-gruv-green hover:text-bg-primary transition-all shadow-[3px_3px_0_0_var(--shadow-color)] active:translate-y-[3px] active:translate-x-[3px] active:shadow-none"
                     >
-                        {isRunning ? <Square size={18} fill="currentColor" strokeWidth={0} /> : <Play size={20} fill="currentColor" className="ml-0.5" strokeWidth={0} />}
+                        {isRunning ? <Square size={14} fill="currentColor" strokeWidth={0} /> : <Play size={16} fill="currentColor" className="ml-0.5" strokeWidth={0} />}
+                        <span>{isRunning ? 'PAUSE' : 'START'}</span>
                     </button>
                     <button
                         onClick={reset}
-                        className="w-12 h-12 flex items-center justify-center bg-element border-3 border-border hover:bg-gruv-yellow hover:border-gruv-yellow hover:text-bg-primary transition-all shadow-[4px_4px_0_0_var(--shadow-color)] active:translate-y-[4px] active:translate-x-[4px] active:shadow-none"
+                        className="w-11 h-11 flex-shrink-0 flex items-center justify-center bg-element border-2 border-border hover:bg-gruv-yellow hover:border-gruv-yellow hover:text-bg-primary transition-all shadow-[3px_3px_0_0_var(--shadow-color)] active:translate-y-[3px] active:translate-x-[3px] active:shadow-none"
+                        title="Reset Timer"
                     >
-                        <RotateCcw size={20} strokeWidth={3} />
+                        <RotateCcw size={16} strokeWidth={2.5} />
                     </button>
                 </div>
             </div>
 
             <div
-                className={`absolute inset-0 bg-[var(--bg-primary)] z-10 p-4 flex flex-col transition-transform duration-200 ${isSettingsOpen ? 'translate-x-0' : 'translate-x-full'}`}
+                className={`absolute inset-0 bg-[var(--bg-primary)] z-10 p-3 flex flex-col transition-transform duration-200 ${isSettingsOpen ? 'translate-x-0' : 'translate-x-full'}`}
                 style={{ fontFamily: '"Silkscreen", monospace' }}
             >
-                <div className="flex items-center justify-between pb-3 border-b-2 border-border mb-4">
-                    <span className="text-xl tracking-widest uppercase flex items-center gap-2 text-accent">
-                        <Settings size={18} /> OPTIONS
+                <div className="flex items-center justify-between pb-2 border-b-2 border-border mb-2">
+                    <span className="text-base tracking-widest uppercase flex items-center gap-1.5 text-accent">
+                        <Settings size={14} /> OPTIONS
                     </span>
                     <button
                         onClick={() => setIsSettingsOpen(false)}
                         className="text-muted hover:text-gruv-red transition-colors"
                     >
-                        <X size={22} strokeWidth={2} />
+                        <X size={18} strokeWidth={2} />
                     </button>
                 </div>
 
-                <div className="flex-1 flex flex-col gap-4 overflow-y-auto custom-scrollbar pr-1">
+                <div className="flex-1 flex flex-col gap-2.5 overflow-y-auto custom-scrollbar pr-1">
 
-                    <div className="flex flex-col gap-2">
-                        <span className="text-muted text-base tracking-widest uppercase">FOCUS</span>
-                        <div className="grid grid-cols-3 gap-2">
+                    <div className="flex flex-col gap-1.5">
+                        <span className="text-muted text-[10px] tracking-widest uppercase">FOCUS</span>
+                        <div className="grid grid-cols-3 gap-1.5">
                             {[25, 30, 50].map(m => (
                                 <button
                                     key={m}
                                     onClick={() => applyConfiguration('work', m * 60)}
-                                    className={`py-2 border-2 text-lg font-bold transition-all shadow-[3px_3px_0_0_var(--shadow-color)] active:translate-y-[3px] active:translate-x-[3px] active:shadow-none ${wDur === m * 60 ? 'bg-gruv-red/20 border-gruv-red text-gruv-red' : 'bg-element border-border hover:bg-element/80'}`}
+                                    className={`py-1.5 border-2 text-sm font-bold transition-all shadow-[2px_2px_0_0_var(--shadow-color)] active:translate-y-[2px] active:translate-x-[2px] active:shadow-none ${wDur === m * 60 ? 'bg-gruv-red/20 border-gruv-red text-gruv-red' : 'bg-element border-border hover:bg-element/80'}`}
                                 >
                                     {m}m
                                 </button>
@@ -215,15 +217,15 @@ export function PomodoroPanel() {
                         </div>
                     </div>
 
-                    <div className="flex flex-col gap-2">
-                        <span className="text-muted text-base tracking-widest uppercase">BREAKS</span>
-                        <div className="flex justify-between items-center bg-element p-2 border-2 border-border shadow-[3px_3px_0_0_var(--shadow-color)]">
-                            <span className="text-lg text-gruv-blue flex items-center gap-1"><Coffee size={14} /> Short</span>
+                    <div className="flex flex-col gap-1.5">
+                        <span className="text-muted text-[10px] tracking-widest uppercase">BREAKS</span>
+                        <div className="flex justify-between items-center bg-element px-2 py-1.5 border-2 border-border shadow-[2px_2px_0_0_var(--shadow-color)]">
+                            <span className="text-sm text-gruv-blue flex items-center gap-1"><Coffee size={12} /> Short</span>
                             <div className="flex gap-1">
                                 {[5, 10].map(m => (
                                     <button
                                         key={m} onClick={() => applyConfiguration('shortBreak', m * 60)}
-                                        className={`px-2 py-0.5 border-2 text-base transition-colors ${sbDur === m * 60 ? 'bg-gruv-blue text-bg-primary border-gruv-blue' : 'border-border hover:border-gruv-blue'}`}
+                                        className={`px-2 py-0.5 border-2 text-xs transition-colors ${sbDur === m * 60 ? 'bg-gruv-blue text-bg-primary border-gruv-blue' : 'border-border hover:border-gruv-blue'}`}
                                     >
                                         {m}m
                                     </button>
@@ -231,13 +233,13 @@ export function PomodoroPanel() {
                             </div>
                         </div>
 
-                        <div className="flex justify-between items-center bg-element p-2 border-2 border-border shadow-[3px_3px_0_0_var(--shadow-color)]">
-                            <span className="text-lg text-gruv-purple flex items-center gap-1"><Moon size={14} /> Long</span>
+                        <div className="flex justify-between items-center bg-element px-2 py-1.5 border-2 border-border shadow-[2px_2px_0_0_var(--shadow-color)]">
+                            <span className="text-sm text-gruv-purple flex items-center gap-1"><Moon size={12} /> Long</span>
                             <div className="flex gap-1">
                                 {[15, 20, 30].map(m => (
                                     <button
                                         key={m} onClick={() => applyConfiguration('longBreak', m * 60)}
-                                        className={`px-2 py-0.5 border-2 text-base transition-colors ${lbDur === m * 60 ? 'bg-gruv-purple text-bg-primary border-gruv-purple' : 'border-border hover:border-gruv-purple'}`}
+                                        className={`px-2 py-0.5 border-2 text-xs transition-colors ${lbDur === m * 60 ? 'bg-gruv-purple text-bg-primary border-gruv-purple' : 'border-border hover:border-gruv-purple'}`}
                                     >
                                         {m}m
                                     </button>
@@ -246,20 +248,20 @@ export function PomodoroPanel() {
                         </div>
                     </div>
 
-                    <div className="flex flex-col gap-2">
-                        <span className="text-muted text-base tracking-widest uppercase">JUMP TO</span>
-                        <div className="flex gap-2">
-                            <button onClick={() => forceMode('work')} className="flex-1 flex items-center justify-center gap-1 p-2 bg-element border-2 border-border hover:bg-gruv-red hover:text-bg-primary transition-colors text-base">
-                                <Briefcase size={14} /> Focus
+                    <div className="flex flex-col gap-1.5">
+                        <span className="text-muted text-[10px] tracking-widest uppercase">JUMP TO</span>
+                        <div className="flex gap-1.5">
+                            <button onClick={() => forceMode('work')} className="flex-1 flex items-center justify-center gap-1 py-1.5 px-2 bg-element border-2 border-border hover:bg-gruv-red hover:text-bg-primary transition-colors text-xs">
+                                <Briefcase size={12} /> Focus
                             </button>
-                            <button onClick={() => forceMode('shortBreak')} className="flex-1 flex items-center justify-center gap-1 p-2 bg-element border-2 border-border hover:bg-gruv-blue hover:text-bg-primary transition-colors text-base">
-                                <Coffee size={14} /> Break
+                            <button onClick={() => forceMode('shortBreak')} className="flex-1 flex items-center justify-center gap-1 py-1.5 px-2 bg-element border-2 border-border hover:bg-gruv-blue hover:text-bg-primary transition-colors text-xs">
+                                <Coffee size={12} /> Break
                             </button>
                         </div>
                     </div>
 
-                    <button onClick={resetSessions} className="mt-2 flex items-center justify-center gap-1 p-2 border-2 border-dashed border-gruv-red text-gruv-red hover:bg-gruv-red/10 transition-colors text-base tracking-widest">
-                        <RefreshCw size={14} /> RESET CYCLES
+                    <button onClick={resetSessions} className="mt-auto flex items-center justify-center gap-1 py-1.5 px-2 border-2 border-dashed border-gruv-red text-gruv-red hover:bg-gruv-red/10 transition-colors text-xs tracking-widest">
+                        <RefreshCw size={12} /> RESET CYCLES
                     </button>
                 </div>
             </div>

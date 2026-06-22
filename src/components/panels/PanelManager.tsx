@@ -36,7 +36,7 @@ export function PanelManager() {
     const getPanelSize = (type: string) => {
         switch (type) {
             case 'pomodoro':
-                return { width: 280, height: 360 };
+                return { width: 280, height: 380 };
             case 'calendar':
                 return { width: 280, height: 380 };
             case 'quicknote':

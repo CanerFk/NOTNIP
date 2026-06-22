@@ -54,6 +54,10 @@ import { exportPageAsJson, saveExportToFile, saveMarkdownToFile } from '../../li
 import { TableBlock } from './extensions/TableBlock';
 import { ToggleBlock } from './extensions/ToggleBlock';
 import { assetManager } from '../../lib/AssetManager';
+import Code from '@tiptap/extension-code';
+import Link from '@tiptap/extension-link';
+import { SearchAndReplace } from './extensions/SearchAndReplace';
+import { SearchBar } from './SearchBar';
 
 const lowlight = createLowlight({});
 lowlight.register('rust', rust);
@@ -213,6 +217,55 @@ const EscapeNodeConfig = Extension.create({
     }
 });
 
+const LinkShortcut = Extension.create({
+    name: 'linkShortcut',
+    addKeyboardShortcuts() {
+        return {
+            'Mod-k': ({ editor }) => {
+                const existingHref = editor.getAttributes('link').href || '';
+                const hasSelection = !editor.state.selection.empty;
+
+                const url = window.prompt('Enter URL (empty to remove):', existingHref);
+                if (url === null) return true;
+
+                if (url === '') {
+                    editor.chain().focus().extendMarkRange('link').unsetLink().run();
+                    return true;
+                }
+
+                let normalizedUrl = url.trim();
+                if (!/^(https?:\/\/|mailto:)/i.test(normalizedUrl)) {
+                    normalizedUrl = 'https://' + normalizedUrl;
+                }
+                if (/^(javascript|data|vbscript):/i.test(normalizedUrl)) {
+                    return true;
+                }
+
+                if (!hasSelection && !existingHref) {
+                    editor.chain().focus()
+                        .insertContent({
+                            type: 'text',
+                            text: normalizedUrl,
+                            marks: [{ type: 'link', attrs: { href: normalizedUrl } }],
+                        })
+                        .run();
+                } else if (existingHref) {
+                    editor.chain().focus()
+                        .extendMarkRange('link')
+                        .setLink({ href: normalizedUrl })
+                        .run();
+                } else {
+                    editor.chain().focus()
+                        .setLink({ href: normalizedUrl })
+                        .run();
+                }
+
+                return true;
+            },
+        };
+    },
+});
+
 export function Editor() {
     // Performance: Granular selectors
     const activePageId = useStore(state => state.activePageId);
@@ -227,6 +280,7 @@ export function Editor() {
     const [isContentLoading, setIsContentLoading] = useState(false);
     const [isExporting, setIsExporting] = useState(false);
     const [exportSuccess, setExportSuccess] = useState<string | null>(null);
+    const [isSearchOpen, setIsSearchOpen] = useState(false);
 
     const showExportSuccess = (msg: string) => {
         setExportSuccess(msg);
@@ -302,6 +356,7 @@ export function Editor() {
             Bold,
             Italic,
             Strike,
+            Code,
             BulletList.extend({
                 addAttributes() {
                     return {
@@ -470,6 +525,21 @@ export function Editor() {
             TableRow,
             TableCell,
             TableHeader,
+
+            // Links
+            Link.configure({
+                openOnClick: false,
+                autolink: true,
+                linkOnPaste: true,
+                validate: (href: string) => /^https?:\/\//i.test(href),
+            }),
+            LinkShortcut,
+
+            // Search
+            SearchAndReplace.configure({
+                onOpen: () => setIsSearchOpen(true),
+                onClose: () => setIsSearchOpen(false),
+            }),
         ],
         editorProps: {
             attributes: {
@@ -477,6 +547,21 @@ export function Editor() {
             },
             scrollThreshold: { top: 120, bottom: 120, left: 0, right: 0 },
             scrollMargin: { top: 120, bottom: 120, left: 0, right: 0 },
+            transformPastedHTML(html: string) {
+                const doc = new DOMParser().parseFromString(html, 'text/html');
+                doc.body.querySelectorAll('*').forEach(el => {
+                    const element = el as HTMLElement;
+                    if (element.style) {
+                        element.style.removeProperty('color');
+                        element.style.removeProperty('background-color');
+                        element.style.removeProperty('background');
+                    }
+                    element.removeAttribute('class');
+                    element.removeAttribute('bgcolor');
+                    element.removeAttribute('color');
+                });
+                return doc.body.innerHTML;
+            },
             handlePaste: (view, event) => {
                 const files = event.clipboardData?.files;
                 if (!files || files.length === 0) return false;
@@ -593,6 +678,30 @@ export function Editor() {
                 }
                 return false;
             },
+            handleClick: (view, _pos, event) => {
+                if (!(event.ctrlKey || event.metaKey)) return false;
+
+                let target = event.target as HTMLElement;
+                while (target && target !== view.dom) {
+                    if (target.tagName === 'A') {
+                        const href = target.getAttribute('href');
+                        if (href) {
+                            event.preventDefault();
+                            if (/^(javascript|data|vbscript):/i.test(href)) return true;
+
+                            import('@tauri-apps/plugin-opener').then(({ openUrl }) => {
+                                openUrl(href);
+                            }).catch(() => {
+                                window.open(href, '_blank', 'noopener,noreferrer');
+                            });
+                            return true;
+                        }
+                    }
+                    target = target.parentElement as HTMLElement;
+                }
+
+                return false;
+            },
         },
         onUpdate: ({ editor }) => {
             if (activePageId) {
@@ -606,7 +715,6 @@ export function Editor() {
         }
     }, [activePageId]); // Depend on ID to re-init if needed
 
-    // Fetch Content Effect
     useEffect(() => {
         let isMounted = true;
 
@@ -615,20 +723,22 @@ export function Editor() {
 
             setIsContentLoading(true);
             try {
-                // Fetch only JSON content
                 const noteContent = await dbService.getNoteContent(activePageId);
 
                 if (isMounted) {
-                    // Update content
-                    editor.commands.setContent(noteContent?.content || {});
+                    editor.chain()
+                        .setContent(noteContent?.content || {})
+                        .command(({ tr }) => {
+                            tr.setMeta('addToHistory', false);
+                            return true;
+                        })
+                        .run();
 
-                    // Maintain focus
                     if (!editor.isFocused) {
                         editor.commands.focus('start');
                     }
                 }
             } catch (error) {
-                // Silent error in production
             } finally {
                 if (isMounted) setIsContentLoading(false);
             }
@@ -689,6 +799,8 @@ export function Editor() {
                     })}
                 </div>
             )}
+
+            {editor && <SearchBar editor={editor} isOpen={isSearchOpen} onClose={() => setIsSearchOpen(false)} />}
 
             <div
                 className="flex-1 overflow-y-auto bg-background cursor-text custom-scrollbar focus-visible:outline-none transition-colors duration-300"

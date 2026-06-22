@@ -32,6 +32,7 @@
     "dialog:allow-message",
     "dialog:allow-save",
     "dialog:allow-open",
-    "core:path:default"
+    "core:path:default",
+    "opener:default"
   ]
 }

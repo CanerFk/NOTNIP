@@ -6,7 +6,7 @@ import { TableBlockView } from './TableBlockView.tsx';
 export const TableBlock = Node.create({
     name: 'tableBlock',
     group: 'block',
-    content: 'table', // Strictly accept one table node
+    content: 'table',
     draggable: true,
 
     addAttributes() {
@@ -53,26 +53,23 @@ export const TableBlock = Node.create({
             new Plugin({
                 key: new PluginKey('tableAutoWrapper'),
                 appendTransaction: (transactions, _oldState, newState) => {
-                    // Only run if document actually changed
                     if (!transactions.some(tr => tr.docChanged)) return null;
 
                     const tr = newState.tr;
                     let modified = false;
                     const nakedPositions: { pos: number, node: any }[] = [];
 
-                    // Traverse to find naked tables
                     newState.doc.descendants((node, pos) => {
                         if (node.type.name === 'table') {
                             const $pos = newState.doc.resolve(pos);
                             if ($pos.parent.type.name !== 'tableBlock') {
                                 nakedPositions.push({ pos, node });
                             }
-                            return false; // Don't traverse inside table
+                            return false;
                         }
                         return true;
                     });
 
-                    // Mutate in reverse order to prevent position shifting
                     nakedPositions.reverse().forEach(({ pos, node }) => {
                         const tableBlockType = newState.schema.nodes.tableBlock;
                         if (tableBlockType) {
