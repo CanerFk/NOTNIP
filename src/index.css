@@ -825,31 +825,38 @@
   border-bottom: 2px solid var(--border) !important;
 }
 
-.table-block-content[data-header-color="red"] th {
+.ProseMirror .table-block-content[data-header-color="red"] th,
+.ProseMirror .table-block-content[data-header-color="red"] th p {
   color: var(--gruv-red) !important;
 }
 
-.table-block-content[data-header-color="yellow"] th {
+.ProseMirror .table-block-content[data-header-color="yellow"] th,
+.ProseMirror .table-block-content[data-header-color="yellow"] th p {
   color: var(--gruv-yellow) !important;
 }
 
-.table-block-content[data-header-color="green"] th {
+.ProseMirror .table-block-content[data-header-color="green"] th,
+.ProseMirror .table-block-content[data-header-color="green"] th p {
   color: var(--gruv-green) !important;
 }
 
-.table-block-content[data-header-color="blue"] th {
+.ProseMirror .table-block-content[data-header-color="blue"] th,
+.ProseMirror .table-block-content[data-header-color="blue"] th p {
   color: var(--gruv-blue) !important;
 }
 
-.table-block-content[data-header-color="purple"] th {
+.ProseMirror .table-block-content[data-header-color="purple"] th,
+.ProseMirror .table-block-content[data-header-color="purple"] th p {
   color: var(--gruv-purple) !important;
 }
 
-.table-block-content[data-header-color="aqua"] th {
+.ProseMirror .table-block-content[data-header-color="aqua"] th,
+.ProseMirror .table-block-content[data-header-color="aqua"] th p {
   color: var(--gruv-aqua) !important;
 }
 
-.table-block-content[data-header-color="orange"] th {
+.ProseMirror .table-block-content[data-header-color="orange"] th,
+.ProseMirror .table-block-content[data-header-color="orange"] th p {
   color: var(--gruv-orange) !important;
 }
 

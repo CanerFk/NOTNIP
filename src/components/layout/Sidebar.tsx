@@ -261,7 +261,7 @@ export function Sidebar() {
             {/* Footer / Theme Toggle */}
             <div className="p-4 border-t border-border flex items-center justify-between bg-background/30">
                 <div className="flex items-center gap-3">
-                    <div className="text-xs text-muted opacity-50">v0.6.0 BETA</div>
+                    <div className="text-xs text-muted opacity-50">v0.6.1 BETA</div>
                     <SaveStatusIndicator />
                 </div>
                 <button

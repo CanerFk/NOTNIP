@@ -5,7 +5,7 @@ import { ToggleBlockView } from './ToggleBlockView.tsx';
 export const ToggleBlock = Node.create({
     name: 'toggleBlock',
     group: 'block',
-    content: 'block+', // Can contain multiple block elements. First block acts as header.
+    content: 'block+',
 
     addAttributes() {
         return {
@@ -23,12 +23,20 @@ export const ToggleBlock = Node.create({
                     'data-title': attributes.title,
                 }),
             },
-            size: {
+            headerStyle: {
                 default: 'normal',
-                parseHTML: (element) => element.getAttribute('data-size') || 'normal',
+                parseHTML: (element) => element.getAttribute('data-header-style') || element.getAttribute('data-size') || 'normal',
                 renderHTML: (attributes) => ({
-                    'data-size': attributes.size,
+                    'data-header-style': attributes.headerStyle,
                 }),
+            },
+            headerColor: {
+                default: '',
+                parseHTML: (element) => element.getAttribute('data-header-color') || '',
+                renderHTML: (attributes) => {
+                    if (!attributes.headerColor) return {};
+                    return { 'data-header-color': attributes.headerColor };
+                },
             },
             tabbed: {
                 default: true,
@@ -55,9 +63,6 @@ export const ToggleBlock = Node.create({
     },
 
     addKeyboardShortcuts() {
-        return {
-            // Tiptap's default container behavior usually handles "Enter" well 
-            // but we can ensure standard behavior passes through.
-        };
+        return {};
     }
 });

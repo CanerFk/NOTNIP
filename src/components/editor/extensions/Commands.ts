@@ -11,7 +11,6 @@ export interface CommandFlag {
 }
 
 export function parseSlashQuery(query: string) {
-    // Highly optimized native O(n) split
     const parts = query.trim().split(/\s+/);
     const activeFlags: string[] = [];
     const cmdParts: string[] = [];
@@ -71,6 +70,19 @@ export const Commands = Extension.create({
     },
 });
 
+const convertOrSplitBlock = (editor: any, range: any, action: () => void) => {
+    const { state } = editor;
+    const $from = state.doc.resolve(range.from);
+    
+    if ($from.parent.textContent.length === range.to - range.from) {
+        editor.chain().focus().deleteRange(range).run();
+        action();
+    } else {
+        editor.chain().focus().deleteRange(range).splitBlock().run();
+        action();
+    }
+};
+
 export const getSuggestionItems = ({ query }: { query: string }) => {
     const { commandQuery, activeFlags } = parseSlashQuery(query);
 
@@ -80,7 +92,9 @@ export const getSuggestionItems = ({ query }: { query: string }) => {
             icon: React.createElement(Type, { size: 14 }),
             flags: [] as CommandFlag[],
             command: ({ editor, range }: any) => {
-                editor.chain().focus().deleteRange(range).setParagraph().run();
+                convertOrSplitBlock(editor, range, () => {
+                    editor.chain().focus().setParagraph().run();
+                });
             },
         },
         {
@@ -92,7 +106,10 @@ export const getSuggestionItems = ({ query }: { query: string }) => {
                 const colorFlag = activeFlags.slice().reverse().find(f => Object.keys(colorMap).includes(f) || f.startsWith('c'));
                 let color = activeFlags.includes('c') ? 'yellow' : null;
                 if (colorFlag && colorFlag !== 'c') color = colorMap[colorFlag] || colorFlag.slice(1);
-                editor.chain().focus().deleteRange(range).setHeading({ level: 1, color }).run();
+                
+                convertOrSplitBlock(editor, range, () => {
+                    editor.chain().focus().setHeading({ level: 1, color }).run();
+                });
             },
         },
         {
@@ -104,7 +121,10 @@ export const getSuggestionItems = ({ query }: { query: string }) => {
                 const colorFlag = activeFlags.slice().reverse().find(f => Object.keys(colorMap).includes(f) || f.startsWith('c'));
                 let color = activeFlags.includes('c') ? 'yellow' : null;
                 if (colorFlag && colorFlag !== 'c') color = colorMap[colorFlag] || colorFlag.slice(1);
-                editor.chain().focus().deleteRange(range).setHeading({ level: 2, color }).run();
+                
+                convertOrSplitBlock(editor, range, () => {
+                    editor.chain().focus().setHeading({ level: 2, color }).run();
+                });
             },
         },
         {
@@ -117,7 +137,6 @@ export const getSuggestionItems = ({ query }: { query: string }) => {
                 { key: 't', label: 'Toggleable' },
             ] as CommandFlag[],
             command: ({ editor, range }: any) => {
-                // Determine mutual-exclusive list type checking the last used flag
                 const listStyleFlag = activeFlags.slice().reverse().find(f => ['d', 's', 'c'].includes(f));
                 let listType = 'disc';
                 if (listStyleFlag === 's') listType = 'square';
@@ -134,7 +153,9 @@ export const getSuggestionItems = ({ query }: { query: string }) => {
                 } else if (listType !== 'disc') {
                     editor.chain().focus().deleteRange(range).insertContent(listNode).run();
                 } else {
-                    editor.chain().focus().deleteRange(range).toggleBulletList().run();
+                    convertOrSplitBlock(editor, range, () => {
+                        editor.chain().focus().toggleBulletList().run();
+                    });
                 }
             },
         },
@@ -164,7 +185,9 @@ export const getSuggestionItems = ({ query }: { query: string }) => {
                 } else if (listType !== 'decimal') {
                     editor.chain().focus().deleteRange(range).insertContent(listNode).run();
                 } else {
-                    editor.chain().focus().deleteRange(range).toggleOrderedList().run();
+                    convertOrSplitBlock(editor, range, () => {
+                        editor.chain().focus().toggleOrderedList().run();
+                    });
                 }
             },
         },
@@ -179,7 +202,9 @@ export const getSuggestionItems = ({ query }: { query: string }) => {
                         content: [{ type: 'taskList', content: [{ type: 'taskItem', content: [{ type: 'paragraph' }] }] }],
                     }).run();
                 } else {
-                    editor.chain().focus().deleteRange(range).toggleTaskList().run();
+                    convertOrSplitBlock(editor, range, () => {
+                        editor.chain().focus().toggleTaskList().run();
+                    });
                 }
             },
         },
@@ -193,7 +218,9 @@ export const getSuggestionItems = ({ query }: { query: string }) => {
             command: ({ editor, range }: any) => {
                 const lineNumbers = activeFlags.includes('ln');
                 const wordWrap = activeFlags.includes('w');
-                editor.chain().focus().deleteRange(range).setCodeBlock({ lineNumbers, wordWrap }).run();
+                convertOrSplitBlock(editor, range, () => {
+                    editor.chain().focus().setCodeBlock({ lineNumbers, wordWrap }).run();
+                });
             },
         },
         {
@@ -213,7 +240,9 @@ export const getSuggestionItems = ({ query }: { query: string }) => {
                         ]
                     }).run();
                 } else {
-                    editor.chain().focus().deleteRange(range).toggleBlockquote().run();
+                    convertOrSplitBlock(editor, range, () => {
+                        editor.chain().focus().toggleBlockquote().run();
+                    });
                 }
             },
         },
@@ -262,28 +291,30 @@ export const getSuggestionItems = ({ query }: { query: string }) => {
             flags: [
                 { key: 't', label: 'Tabbed', isDefault: true },
                 { key: 'nt', label: 'No Tab' },
+                { key: 'h1', label: 'Heading 1' },
+                { key: 'h2', label: 'Heading 2' },
+                { key: 's', label: 'Small' },
+                { key: 'c', label: 'Color' },
             ] as CommandFlag[],
             command: ({ editor, range }: any) => {
                 const tabbed = !activeFlags.includes('nt');
+                
+                let headerStyle = 'normal';
+                if (activeFlags.includes('h1')) headerStyle = 'h1';
+                else if (activeFlags.includes('h2')) headerStyle = 'h2';
+                else if (activeFlags.includes('s')) headerStyle = 'small';
+
+                const colorMap: Record<string, string> = { cr: 'red', cy: 'yellow', cg: 'green', cb: 'blue', cp: 'purple', ca: 'aqua', co: 'orange' };
+                const colorFlag = activeFlags.slice().reverse().find(f => Object.keys(colorMap).includes(f) || f.startsWith('c'));
+                let headerColor = '';
+                if (colorFlag) {
+                    if (colorFlag === 'c') headerColor = 'yellow';
+                    else headerColor = colorMap[colorFlag] || colorFlag.slice(1);
+                }
+
                 editor.chain().focus().deleteRange(range).insertContent({
                     type: 'toggleBlock',
-                    attrs: { tabbed },
-                    content: [{ type: 'paragraph' }],
-                }).run();
-            },
-        },
-        {
-            title: 'Toggle Small',
-            icon: React.createElement(ChevronDown, { size: 12 }),
-            flags: [
-                { key: 't', label: 'Tabbed', isDefault: true },
-                { key: 'nt', label: 'No Tab' },
-            ] as CommandFlag[],
-            command: ({ editor, range }: any) => {
-                const tabbed = !activeFlags.includes('nt');
-                editor.chain().focus().deleteRange(range).insertContent({
-                    type: 'toggleBlock',
-                    attrs: { size: 'small', tabbed },
+                    attrs: { tabbed, headerStyle, headerColor },
                     content: [{ type: 'paragraph' }],
                 }).run();
             },
@@ -321,7 +352,7 @@ export const getSuggestionItems = ({ query }: { query: string }) => {
                 input.onchange = async (e) => {
                     const file = (e.target as HTMLInputElement).files?.[0];
                     if (file) {
-                        const MAX_SIZE = 5 * 1024 * 1024; // 5MB
+                        const MAX_SIZE = 5 * 1024 * 1024;
                         if (file.size > MAX_SIZE) {
                             const { confirm, open } = await import('@tauri-apps/plugin-dialog');
                             const wantLocal = await confirm(
@@ -366,7 +397,7 @@ export const getSuggestionItems = ({ query }: { query: string }) => {
                 input.onchange = async (e) => {
                     const file = (e.target as HTMLInputElement).files?.[0];
                     if (file) {
-                        const MAX_SIZE = 5 * 1024 * 1024; // 5MB
+                        const MAX_SIZE = 5 * 1024 * 1024;
                         if (file.size > MAX_SIZE) {
                             const { confirm, open } = await import('@tauri-apps/plugin-dialog');
                             const wantLocal = await confirm(
