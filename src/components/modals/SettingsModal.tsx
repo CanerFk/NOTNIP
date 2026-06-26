@@ -6,7 +6,9 @@ import { cn } from '../../lib/utils';
 type Tab = 'appearance' | 'typography' | 'data';
 
 export function SettingsModal() {
-    const { isSettingsOpen, toggleSettings, updateTheme, themePreferences } = useStore();
+    const toggleSettings = useStore(state => state.toggleSettings);
+    const updateTheme = useStore(state => state.updateTheme);
+    const themePreferences = useStore(state => state.themePreferences);
     const [activeTab, setActiveTab] = useState<Tab>('appearance');
     const [isClosing, setIsClosing] = useState(false);
 
@@ -40,7 +42,6 @@ export function SettingsModal() {
         }
     };
 
-    if (!isSettingsOpen && !isClosing) return null;
 
     const colors = ['#ea6962', '#a9b665', '#d8a657', '#7daea3', '#d3869b', '#89b482', '#e78a4e', '#504945'];
 

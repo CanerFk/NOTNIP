@@ -10,7 +10,13 @@ import { useEffect, useState } from 'react';
 import { Minimize2 } from 'lucide-react';
 
 export function Layout({ children }: { children: React.ReactNode }) {
-    const { wordCount, isFocusMode, toggleFocusMode, sidebarWidth, setSidebarWidth } = useStore();
+    const wordCount = useStore(state => state.wordCount);
+    const isFocusMode = useStore(state => state.isFocusMode);
+    const toggleFocusMode = useStore(state => state.toggleFocusMode);
+    const sidebarWidth = useStore(state => state.sidebarWidth);
+    const setSidebarWidth = useStore(state => state.setSidebarWidth);
+    const isSettingsOpen = useStore(state => state.isSettingsOpen);
+    const isCalendarModalOpen = useStore(state => state.isCalendarModalOpen);
     const [isResizingSidebar, setIsResizingSidebar] = useState(false);
 
     // Sidebar Resize Drag Logic
@@ -108,8 +114,8 @@ export function Layout({ children }: { children: React.ReactNode }) {
                 </main>
             </div>
 
-            <SettingsModal />
-            <FullCalendarModal />
+            {isSettingsOpen && <SettingsModal />}
+            {isCalendarModalOpen && <FullCalendarModal />}
 
             {/* Floating Retro Panels */}
             <PanelManager />

@@ -23,7 +23,10 @@ function truncatePreview(text: string, maxLen: number = 12): string {
 }
 
 export function QuickNotePanel() {
-    const { quickNotes, addQuickNote, removeQuickNote, updateQuickNoteText } = useStore();
+    const quickNotes = useStore(state => state.quickNotes);
+    const addQuickNote = useStore(state => state.addQuickNote);
+    const removeQuickNote = useStore(state => state.removeQuickNote);
+    const updateQuickNoteText = useStore(state => state.updateQuickNoteText);
     const [inputValue, setInputValue] = useState('');
     const [activeNoteId, setActiveNoteId] = useState<string | null>(null);
 

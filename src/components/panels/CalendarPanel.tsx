@@ -4,7 +4,11 @@ import { Calendar, CheckSquare, Square, Trash2, Plus, ChevronLeft, ChevronRight 
 import { cn } from '../../lib/utils';
 
 export function CalendarPanel() {
-    const { calendarTodosByDate, updateCalendarTodos, calendarSelectedDate, setCalendarSelectedDate, toggleCalendarModal } = useStore();
+    const calendarTodosByDate = useStore(state => state.calendarTodosByDate);
+    const updateCalendarTodos = useStore(state => state.updateCalendarTodos);
+    const calendarSelectedDate = useStore(state => state.calendarSelectedDate);
+    const setCalendarSelectedDate = useStore(state => state.setCalendarSelectedDate);
+    const toggleCalendarModal = useStore(state => state.toggleCalendarModal);
     const [inputValue, setInputValue] = useState('');
 
     const currentTodos = calendarTodosByDate?.[calendarSelectedDate] || [];

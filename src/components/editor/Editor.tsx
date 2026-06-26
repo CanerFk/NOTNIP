@@ -27,7 +27,7 @@ import { TableRow } from '@tiptap/extension-table-row';
 import { TableCell } from '@tiptap/extension-table-cell';
 import { TableHeader } from '@tiptap/extension-table-header';
 import { useStore } from '../../store/useStore';
-import { useEffect, useState, useMemo } from 'react';
+import { useEffect, useState, useMemo, useRef, useCallback } from 'react';
 import { Commands } from './extensions/Commands';
 import { suggestion } from './extensions/suggestion';
 import { dbService } from '../../lib/database.ts';
@@ -281,6 +281,16 @@ export function Editor() {
     const [isExporting, setIsExporting] = useState(false);
     const [exportSuccess, setExportSuccess] = useState<string | null>(null);
     const [isSearchOpen, setIsSearchOpen] = useState(false);
+
+    const wordCountTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+    const debouncedWordCount = useCallback((editor: any) => {
+        if (wordCountTimerRef.current) clearTimeout(wordCountTimerRef.current);
+        wordCountTimerRef.current = setTimeout(() => {
+            const text = editor.getText();
+            const words = text.trim().split(/\s+/).filter((w: string) => w.length > 0).length;
+            setWordCount(words);
+        }, 500);
+    }, [setWordCount]);
 
     const showExportSuccess = (msg: string) => {
         setExportSuccess(msg);
@@ -709,9 +719,7 @@ export function Editor() {
                 updatePageContent(activePageId, json);
             }
 
-            const text = editor.getText();
-            const words = text.trim().split(/\s+/).filter(w => w.length > 0).length;
-            setWordCount(words);
+            debouncedWordCount(editor);
         }
     }, [activePageId]); // Depend on ID to re-init if needed
 

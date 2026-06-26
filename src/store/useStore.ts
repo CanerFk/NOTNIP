@@ -1,9 +1,37 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { dbService, NoteMetadata } from '../lib/database.ts';
-import { debounce } from 'lodash-es';
 
 export interface PageMetadata extends NoteMetadata { }
+
+function debounce<T extends (...args: any[]) => any>(fn: T, ms: number): T & { flush: () => void } {
+    let timeoutId: ReturnType<typeof setTimeout> | null = null;
+    let lastArgs: any[] | null = null;
+
+    const debounced = (...args: any[]) => {
+        lastArgs = args;
+        if (timeoutId !== null) clearTimeout(timeoutId);
+        timeoutId = setTimeout(() => {
+            timeoutId = null;
+            lastArgs = null;
+            fn(...args);
+        }, ms);
+    };
+
+    debounced.flush = () => {
+        if (timeoutId !== null) {
+            clearTimeout(timeoutId);
+            timeoutId = null;
+            if (lastArgs) {
+                const args = lastArgs;
+                lastArgs = null;
+                fn(...args);
+            }
+        }
+    };
+
+    return debounced as T & { flush: () => void };
+}
 
 interface StoreState {
     pages: PageMetadata[];
@@ -58,9 +86,9 @@ interface StoreState {
     updateQuickNoteText: (id: string, text: string) => void;
 
     pomodoroState: {
-        timeLeft: number;
         isRunning: boolean;
-        lastTimestamp: number | null;
+        startedAt: number | null;
+        pausedRemaining: number | null;
         sessionsCompleted: number;
         focusDuration: number;
         shortBreakDuration: number;
@@ -160,9 +188,9 @@ export const useStore = create<StoreState>()(
             })),
 
             pomodoroState: {
-                timeLeft: 25 * 60,
                 isRunning: false,
-                lastTimestamp: null,
+                startedAt: null,
+                pausedRemaining: null,
                 sessionsCompleted: 0,
                 focusDuration: 25 * 60,
                 shortBreakDuration: 5 * 60,
@@ -323,9 +351,6 @@ export const useStore = create<StoreState>()(
             },
 
             updatePageContent: (id, content) => {
-                set(state => ({
-                    pages: state.pages.map(p => p.id === id ? { ...p, updated_at: Date.now() } : p)
-                }));
                 debouncedSaveContent(id, content, get().setSaveStatus);
             },
 
@@ -336,7 +361,6 @@ export const useStore = create<StoreState>()(
             name: 'notnip-storage',
             partialize: (state) => ({
                 themePreferences: state.themePreferences,
-                panelState: state.panels,
                 panels: state.panels,
                 quickNotes: state.quickNotes || [],
                 pomodoroState: state.pomodoroState,

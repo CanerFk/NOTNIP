@@ -300,7 +300,7 @@ function SidebarItem({ icon, label, active, onClick }: { icon: React.ReactNode, 
 }
 
 function SaveStatusIndicator() {
-    const { saveStatus } = useStore();
+    const saveStatus = useStore(state => state.saveStatus);
     const [displayStatus, setDisplayStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
 
     useEffect(() => {

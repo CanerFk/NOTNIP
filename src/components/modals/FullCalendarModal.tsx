@@ -4,12 +4,14 @@ import { cn } from '../../lib/utils';
 import { X, ChevronLeft, ChevronRight, Calendar as CalendarIcon } from 'lucide-react';
 
 export function FullCalendarModal() {
-    const { isCalendarModalOpen, toggleCalendarModal, calendarSelectedDate, setCalendarSelectedDate, calendarTodosByDate } = useStore();
+    const toggleCalendarModal = useStore(state => state.toggleCalendarModal);
+    const calendarSelectedDate = useStore(state => state.calendarSelectedDate);
+    const setCalendarSelectedDate = useStore(state => state.setCalendarSelectedDate);
+    const calendarTodosByDate = useStore(state => state.calendarTodosByDate);
 
     // UI Local State for month viewed
     const [viewDate, setViewDate] = useState(new Date(calendarSelectedDate));
 
-    if (!isCalendarModalOpen) return null;
 
     const currentMonth = viewDate.getMonth();
     const currentYear = viewDate.getFullYear();

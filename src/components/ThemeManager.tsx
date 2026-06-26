@@ -2,7 +2,7 @@ import { useEffect } from 'react';
 import { useStore } from '../store/useStore';
 
 export function ThemeManager() {
-    const { themePreferences } = useStore();
+    const themePreferences = useStore(state => state.themePreferences);
 
     useEffect(() => {
         const root = document.documentElement;

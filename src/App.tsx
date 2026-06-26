@@ -4,7 +4,8 @@ import { Editor } from "./components/editor/Editor";
 import { useStore } from "./store/useStore";
 
 function App() {
-  const { fetchPages, isLoading } = useStore();
+  const fetchPages = useStore(state => state.fetchPages);
+  const isLoading = useStore(state => state.isLoading);
 
   useEffect(() => {
     fetchPages();

@@ -6,7 +6,10 @@ import { IconPicker } from '../../ui/IconPicker';
 
 export function SubpageItemView(props: NodeViewProps) {
     const { id } = props.node.attrs;
-    const { pages, setActivePage, updatePageIcon, setDeletionCandidateId } = useStore();
+    const pages = useStore(state => state.pages);
+    const setActivePage = useStore(state => state.setActivePage);
+    const updatePageIcon = useStore(state => state.updatePageIcon);
+    const setDeletionCandidateId = useStore(state => state.setDeletionCandidateId);
     const page = pages.find(p => p.id === id);
 
     // Use page icon from store, default to 'file'

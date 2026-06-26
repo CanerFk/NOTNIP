@@ -41,6 +41,16 @@
       "icons/icon.ico"
     ],
     "shortDescription": "A local-first, retro-themed note-taking app",
+    "windows": {
+      "wix": {
+        "language": "en-US"
+      },
+      "nsis": {
+        "installMode": "perMachine",
+        "displayLanguageSelector": false,
+        "installerIcon": "icons/icon.ico"
+      }
+    },
     "linux": {
       "deb": {
         "section": "editors",

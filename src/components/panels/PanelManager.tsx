@@ -5,7 +5,9 @@ import { PomodoroPanel } from './PomodoroPanel';
 import { CalendarPanel } from './CalendarPanel';
 
 export function PanelManager() {
-    const { panels, closePanel, updatePanelPosition } = useStore();
+    const panels = useStore(state => state.panels);
+    const closePanel = useStore(state => state.closePanel);
+    const updatePanelPosition = useStore(state => state.updatePanelPosition);
 
     const renderPanelContent = (type: string) => {
         switch (type) {

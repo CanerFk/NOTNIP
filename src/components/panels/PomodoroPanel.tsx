@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useCallback } from 'react';
 import { Play, Square, Coffee, Briefcase, Moon, Settings, X, RefreshCw, RotateCcw } from 'lucide-react';
 import { useStore } from '../../store/useStore';
 
@@ -14,12 +14,20 @@ const MODE_ICONS = {
     longBreak: Moon
 };
 
+function getDurationForMode(mode: string, focusDuration: number, shortBreakDuration: number, longBreakDuration: number): number {
+    if (mode === 'work') return focusDuration || 25 * 60;
+    if (mode === 'shortBreak') return shortBreakDuration || 5 * 60;
+    return longBreakDuration || 15 * 60;
+}
+
 export function PomodoroPanel() {
-    const { pomodoroState, updatePomodoro } = useStore();
+    const pomodoroState = useStore(state => state.pomodoroState);
+    const updatePomodoro = useStore(state => state.updatePomodoro);
+
     const {
-        timeLeft,
         isRunning,
-        lastTimestamp,
+        startedAt,
+        pausedRemaining,
         mode,
         sessionsCompleted,
         focusDuration,
@@ -29,67 +37,95 @@ export function PomodoroPanel() {
 
     const currentMode = mode || 'work';
     const currentSessions = sessionsCompleted || 0;
+    const totalDuration = getDurationForMode(currentMode, focusDuration, shortBreakDuration, longBreakDuration);
 
+    const computeTimeLeft = useCallback((): number => {
+        if (!isRunning || startedAt === null) {
+            return pausedRemaining !== null ? pausedRemaining : totalDuration;
+        }
+        const elapsed = Math.floor((Date.now() - startedAt) / 1000);
+        return Math.max(0, totalDuration - elapsed);
+    }, [isRunning, startedAt, pausedRemaining, totalDuration]);
+
+    const [displayTime, setDisplayTime] = useState(computeTimeLeft);
     const intervalRef = useRef<number | null>(null);
     const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 
     useEffect(() => {
-        if (isRunning && lastTimestamp) {
-            const now = Date.now();
-            const elapsedSeconds = Math.floor((now - lastTimestamp) / 1000);
-            if (elapsedSeconds > 0) {
-                const newTimeLeft = Math.max(0, timeLeft - elapsedSeconds);
-                updatePomodoro({
-                    timeLeft: newTimeLeft,
-                    lastTimestamp: now,
-                    isRunning: newTimeLeft > 0
-                });
-            }
-        }
-    }, []);
-
-    const cycleNextMode = () => {
-        if (currentMode === 'work') {
-            const nextSessionVal = currentSessions + 1;
-            if (nextSessionVal % 4 === 0) {
-                updatePomodoro({ mode: 'longBreak', timeLeft: longBreakDuration || 15 * 60, sessionsCompleted: nextSessionVal });
-            } else {
-                updatePomodoro({ mode: 'shortBreak', timeLeft: shortBreakDuration || 5 * 60, sessionsCompleted: nextSessionVal });
-            }
-        } else {
-            updatePomodoro({ mode: 'work', timeLeft: focusDuration || 25 * 60 });
-        }
-    };
+        setDisplayTime(computeTimeLeft());
+    }, [computeTimeLeft]);
 
     useEffect(() => {
-        if (isRunning && timeLeft > 0) {
-            intervalRef.current = window.setInterval(() => {
-                const now = Date.now();
-                updatePomodoro({
-                    timeLeft: timeLeft - 1,
-                    lastTimestamp: now
-                });
-            }, 1000);
-        } else if (timeLeft === 0 && isRunning) {
-            updatePomodoro({ isRunning: false, lastTimestamp: null });
-            cycleNextMode();
+        if (!isRunning) {
+            if (intervalRef.current) {
+                clearInterval(intervalRef.current);
+                intervalRef.current = null;
+            }
+            return;
         }
 
+        intervalRef.current = window.setInterval(() => {
+            const remaining = computeTimeLeft();
+            setDisplayTime(remaining);
+
+            if (remaining <= 0) {
+                if (intervalRef.current) clearInterval(intervalRef.current);
+                intervalRef.current = null;
+
+                if (currentMode === 'work') {
+                    const nextSession = currentSessions + 1;
+                    const isLong = nextSession % 4 === 0;
+                    const nextMode = isLong ? 'longBreak' : 'shortBreak';
+                    updatePomodoro({
+                        isRunning: false,
+                        startedAt: null,
+                        pausedRemaining: null,
+                        sessionsCompleted: nextSession,
+                        mode: nextMode
+                    });
+                } else {
+                    updatePomodoro({
+                        isRunning: false,
+                        startedAt: null,
+                        pausedRemaining: null,
+                        mode: 'work'
+                    });
+                }
+            }
+        }, 1000);
+
         return () => {
-            if (intervalRef.current) clearInterval(intervalRef.current);
+            if (intervalRef.current) {
+                clearInterval(intervalRef.current);
+                intervalRef.current = null;
+            }
         };
-    }, [isRunning, timeLeft, updatePomodoro, currentMode, currentSessions, focusDuration, shortBreakDuration, longBreakDuration]);
+    }, [isRunning, computeTimeLeft, currentMode, currentSessions, updatePomodoro]);
 
     const toggle = () => {
-        updatePomodoro({ isRunning: !isRunning, lastTimestamp: !isRunning ? Date.now() : null });
+        if (isRunning) {
+            const remaining = computeTimeLeft();
+            updatePomodoro({
+                isRunning: false,
+                startedAt: null,
+                pausedRemaining: remaining
+            });
+        } else {
+            const remaining = pausedRemaining !== null ? pausedRemaining : totalDuration;
+            const now = Date.now();
+            updatePomodoro({
+                isRunning: true,
+                startedAt: now - ((totalDuration - remaining) * 1000),
+                pausedRemaining: null
+            });
+        }
     };
 
     const reset = () => {
-        const timeVal = currentMode === 'work' ? focusDuration : (currentMode === 'shortBreak' ? shortBreakDuration : longBreakDuration);
         updatePomodoro({
             isRunning: false,
-            timeLeft: timeVal || 25 * 60,
-            lastTimestamp: null
+            startedAt: null,
+            pausedRemaining: null
         });
     };
 
@@ -97,37 +133,32 @@ export function PomodoroPanel() {
         updatePomodoro({
             sessionsCompleted: 0,
             mode: 'work',
-            timeLeft: focusDuration || 25 * 60,
             isRunning: false,
-            lastTimestamp: null
+            startedAt: null,
+            pausedRemaining: null
         });
     };
 
     const applyConfiguration = (newMode: 'work' | 'shortBreak' | 'longBreak', newTime: number) => {
-        const upd: any = { isRunning: false, lastTimestamp: null };
+        const upd: any = { isRunning: false, startedAt: null, pausedRemaining: null };
         if (newMode === 'work') upd.focusDuration = newTime;
         if (newMode === 'shortBreak') upd.shortBreakDuration = newTime;
         if (newMode === 'longBreak') upd.longBreakDuration = newTime;
-
-        if (currentMode === newMode) {
-            upd.timeLeft = newTime;
-        }
         updatePomodoro(upd);
     };
 
     const forceMode = (m: 'work' | 'shortBreak' | 'longBreak') => {
-        const timeVal = m === 'work' ? focusDuration : (m === 'shortBreak' ? shortBreakDuration : longBreakDuration);
         updatePomodoro({
             mode: m,
-            timeLeft: timeVal || 25 * 60,
             isRunning: false,
-            lastTimestamp: null
+            startedAt: null,
+            pausedRemaining: null
         });
         setIsSettingsOpen(false);
     };
 
-    const minutes = Math.floor(timeLeft / 60);
-    const seconds = timeLeft % 60;
+    const minutes = Math.floor(displayTime / 60);
+    const seconds = displayTime % 60;
 
     const wDur = focusDuration || 25 * 60;
     const sbDur = shortBreakDuration || 5 * 60;
