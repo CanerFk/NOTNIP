@@ -266,15 +266,17 @@ const LinkShortcut = Extension.create({
     },
 });
 
-export function Editor() {
-    // Performance: Granular selectors
+const STYLE_SCROLLBAR_NONE = { scrollbarWidth: 'none' as const };
+const STYLE_OVERFLOW_ANCHOR = { overflowAnchor: 'none' as const };
+const STYLE_TITLE_COLOR = { color: 'var(--editor-title-color, var(--accent))' };
+
+export function Editor({ setWordCount }: { setWordCount: (n: number) => void }) {
     const activePageId = useStore(state => state.activePageId);
     const pages = useStore(state => state.pages);
     const updatePageContent = useStore(state => state.updatePageContent);
     const updatePageTitle = useStore(state => state.updatePageTitle);
     const updatePageIcon = useStore(state => state.updatePageIcon);
     const setActivePage = useStore(state => state.setActivePage);
-    const setWordCount = useStore(state => state.setWordCount);
     const readableLineLength = useStore(state => state.themePreferences.readableLineLength);
     const [title, setTitle] = useState('');
     const [isContentLoading, setIsContentLoading] = useState(false);
@@ -282,7 +284,19 @@ export function Editor() {
     const [exportSuccess, setExportSuccess] = useState<string | null>(null);
     const [isSearchOpen, setIsSearchOpen] = useState(false);
 
+    const activePageIdRef = useRef(activePageId);
+    useEffect(() => { activePageIdRef.current = activePageId; }, [activePageId]);
+
+    const exportSuccessTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const wordCountTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+    useEffect(() => {
+        return () => {
+            if (exportSuccessTimerRef.current) clearTimeout(exportSuccessTimerRef.current);
+            if (wordCountTimerRef.current) clearTimeout(wordCountTimerRef.current);
+        };
+    }, []);
+
     const debouncedWordCount = useCallback((editor: any) => {
         if (wordCountTimerRef.current) clearTimeout(wordCountTimerRef.current);
         wordCountTimerRef.current = setTimeout(() => {
@@ -292,44 +306,45 @@ export function Editor() {
         }, 500);
     }, [setWordCount]);
 
-    const showExportSuccess = (msg: string) => {
+    const showExportSuccess = useCallback((msg: string) => {
         setExportSuccess(msg);
-        setTimeout(() => setExportSuccess(null), 3000);
-    };
+        if (exportSuccessTimerRef.current) clearTimeout(exportSuccessTimerRef.current);
+        exportSuccessTimerRef.current = setTimeout(() => setExportSuccess(null), 3000);
+    }, []);
 
-    const handleExport = async (e: React.MouseEvent) => {
+    const handleExport = useCallback(async (e: React.MouseEvent) => {
         e.stopPropagation();
-        if (!activePageId) return;
+        if (!activePageIdRef.current) return;
         setIsExporting(true);
         try {
-            const manifest = await exportPageAsJson(activePageId);
+            const manifest = await exportPageAsJson(activePageIdRef.current);
             const path = await saveExportToFile(manifest);
             if (path) showExportSuccess('Notnip Exported');
-        } catch (e) {
-            console.error("Export Failed:", e);
+        } catch (err) {
+            console.error('Export Failed:', err);
         } finally {
             setIsExporting(false);
         }
-    };
+    }, [showExportSuccess]);
 
-    const handleMarkdownExport = async (e: React.MouseEvent) => {
+    const handleMarkdownExport = useCallback(async (e: React.MouseEvent) => {
         e.stopPropagation();
-        if (!activePageId) return;
+        if (!activePageIdRef.current) return;
         setIsExporting(true);
         try {
-            const resultPath = await saveMarkdownToFile(activePageId);
+            const resultPath = await saveMarkdownToFile(activePageIdRef.current);
             if (resultPath) showExportSuccess('MD Folder Exported');
-        } catch (e) {
-            console.error("Markdown Export Failed:", e);
+        } catch (err) {
+            console.error('Markdown Export Failed:', err);
         } finally {
             setIsExporting(false);
         }
-    };
+    }, [showExportSuccess]);
 
 
 
     // Metadata from store (title, icon, etc)
-    const activePageMeta = pages.find(p => p.id === activePageId);
+    const activePageMeta = useMemo(() => pages.find(p => p.id === activePageId), [pages, activePageId]);
 
     const breadcrumbs = useMemo(() => {
         if (!activePageId) return [];
@@ -714,14 +729,14 @@ export function Editor() {
             },
         },
         onUpdate: ({ editor }) => {
-            if (activePageId) {
+            const pageId = activePageIdRef.current;
+            if (pageId) {
                 const json = editor.getJSON();
-                updatePageContent(activePageId, json);
+                updatePageContent(pageId, json);
             }
-
             debouncedWordCount(editor);
         }
-    }, [activePageId]); // Depend on ID to re-init if needed
+    }, []);
 
     useEffect(() => {
         let isMounted = true;
@@ -784,7 +799,7 @@ export function Editor() {
         <div className="flex flex-col h-full w-full bg-background relative overflow-hidden transition-colors duration-300">
 
             {breadcrumbs.length > 1 && (
-                <div className="flex items-center gap-0 px-6 sm:px-8 py-1.5 bg-secondary/50 border-b border-border select-none flex-shrink-0 overflow-x-auto custom-scrollbar" style={{ scrollbarWidth: 'none' }}>
+                <div className="flex items-center gap-0 px-6 sm:px-8 py-1.5 bg-secondary/50 border-b border-border select-none flex-shrink-0 overflow-x-auto custom-scrollbar" style={STYLE_SCROLLBAR_NONE}>
                     {breadcrumbs.map((crumb, idx) => {
                         const isLast = idx === breadcrumbs.length - 1;
                         return (
@@ -812,7 +827,7 @@ export function Editor() {
 
             <div
                 className="flex-1 overflow-y-auto bg-background cursor-text custom-scrollbar focus-visible:outline-none transition-colors duration-300"
-                style={{ overflowAnchor: 'none' }}
+                style={STYLE_OVERFLOW_ANCHOR}
                 onClick={() => editor?.chain().focus().run()}
             >
                 <div className={cn(
@@ -834,7 +849,7 @@ export function Editor() {
                                 value={title}
                                 onChange={handleTitleChange}
                                 className="w-full bg-transparent text-4xl font-bold outline-none border-none placeholder-transparent z-10 relative"
-                                style={{ color: 'var(--editor-title-color, var(--accent))' }}
+                                style={STYLE_TITLE_COLOR}
                                 placeholder="Untitled Page"
                                 id="note-title"
                             />

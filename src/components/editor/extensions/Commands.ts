@@ -10,11 +10,29 @@ export interface CommandFlag {
     isDefault?: boolean;
 }
 
+const COLOR_MAP: Record<string, string> = { cr: 'red', cy: 'yellow', cg: 'green', cb: 'blue', cp: 'purple', ca: 'aqua', co: 'orange' };
+
+const COLOR_MAP_KEYS = Object.keys(COLOR_MAP);
+
+const ICON_H1 = React.createElement(Heading1, { size: 14 });
+const ICON_H2 = React.createElement(Heading2, { size: 14 });
+const ICON_LIST = React.createElement(List, { size: 14 });
+const ICON_LIST_ORDERED = React.createElement(ListOrdered, { size: 14 });
+const ICON_CHECK = React.createElement(CheckSquare, { size: 14 });
+const ICON_CODE = React.createElement(Code, { size: 14 });
+const ICON_TYPE = React.createElement(Type, { size: 14 });
+const ICON_QUOTE = React.createElement(Quote, { size: 14 });
+const ICON_GRID = React.createElement(Grid3X3, { size: 14 });
+const ICON_CHEVRON = React.createElement(ChevronDown, { size: 14 });
+const ICON_FOLDER = React.createElement(FolderPlus, { size: 14 });
+const ICON_IMAGE = React.createElement(Image, { size: 14 });
+const ICON_FILE_TEXT = React.createElement(FileText, { size: 14 });
+const ICON_MINUS = React.createElement(Minus, { size: 14 });
+
 export function parseSlashQuery(query: string) {
     const parts = query.trim().split(/\s+/);
     const activeFlags: string[] = [];
     const cmdParts: string[] = [];
-    const hasFlags = query.includes(' -');
 
     for (let i = 0; i < parts.length; i++) {
         const part = parts[i];
@@ -28,7 +46,7 @@ export function parseSlashQuery(query: string) {
     return {
         commandQuery: cmdParts.join(' ').toLowerCase(),
         activeFlags,
-        hasFlags,
+        hasFlags: query.includes(' -')
     };
 }
 
@@ -73,7 +91,7 @@ export const Commands = Extension.create({
 const convertOrSplitBlock = (editor: any, range: any, action: () => void) => {
     const { state } = editor;
     const $from = state.doc.resolve(range.from);
-    
+
     if ($from.parent.textContent.length === range.to - range.from) {
         editor.chain().focus().deleteRange(range).run();
         action();
@@ -83,13 +101,20 @@ const convertOrSplitBlock = (editor: any, range: any, action: () => void) => {
     }
 };
 
+function resolveColor(activeFlags: string[], defaultColor: string): string | null {
+    const colorFlag = activeFlags.slice().reverse().find(f => COLOR_MAP_KEYS.includes(f) || f.startsWith('c'));
+    if (!colorFlag) return null;
+    if (colorFlag === 'c') return defaultColor;
+    return COLOR_MAP[colorFlag] || colorFlag.slice(1);
+}
+
 export const getSuggestionItems = ({ query }: { query: string }) => {
     const { commandQuery, activeFlags } = parseSlashQuery(query);
 
     const items = [
         {
             title: 'Text',
-            icon: React.createElement(Type, { size: 14 }),
+            icon: ICON_TYPE,
             flags: [] as CommandFlag[],
             command: ({ editor, range }: any) => {
                 convertOrSplitBlock(editor, range, () => {
@@ -99,14 +124,10 @@ export const getSuggestionItems = ({ query }: { query: string }) => {
         },
         {
             title: 'Heading 1',
-            icon: React.createElement(Heading1, { size: 14 }),
+            icon: ICON_H1,
             flags: [{ key: 'c', label: 'Color' }] as CommandFlag[],
             command: ({ editor, range }: any) => {
-                const colorMap: Record<string, string> = { cr: 'red', cy: 'yellow', cg: 'green', cb: 'blue', cp: 'purple', ca: 'aqua', co: 'orange' };
-                const colorFlag = activeFlags.slice().reverse().find(f => Object.keys(colorMap).includes(f) || f.startsWith('c'));
-                let color = activeFlags.includes('c') ? 'yellow' : null;
-                if (colorFlag && colorFlag !== 'c') color = colorMap[colorFlag] || colorFlag.slice(1);
-                
+                const color = resolveColor(activeFlags, 'yellow');
                 convertOrSplitBlock(editor, range, () => {
                     editor.chain().focus().setHeading({ level: 1, color }).run();
                 });
@@ -114,14 +135,10 @@ export const getSuggestionItems = ({ query }: { query: string }) => {
         },
         {
             title: 'Heading 2',
-            icon: React.createElement(Heading2, { size: 14 }),
+            icon: ICON_H2,
             flags: [{ key: 'c', label: 'Color' }] as CommandFlag[],
             command: ({ editor, range }: any) => {
-                const colorMap: Record<string, string> = { cr: 'red', cy: 'yellow', cg: 'green', cb: 'blue', cp: 'purple', ca: 'aqua', co: 'orange' };
-                const colorFlag = activeFlags.slice().reverse().find(f => Object.keys(colorMap).includes(f) || f.startsWith('c'));
-                let color = activeFlags.includes('c') ? 'yellow' : null;
-                if (colorFlag && colorFlag !== 'c') color = colorMap[colorFlag] || colorFlag.slice(1);
-                
+                const color = resolveColor(activeFlags, 'yellow');
                 convertOrSplitBlock(editor, range, () => {
                     editor.chain().focus().setHeading({ level: 2, color }).run();
                 });
@@ -129,7 +146,7 @@ export const getSuggestionItems = ({ query }: { query: string }) => {
         },
         {
             title: 'Bullet List',
-            icon: React.createElement(List, { size: 14 }),
+            icon: ICON_LIST,
             flags: [
                 { key: 'd', label: 'Disc', isDefault: true },
                 { key: 's', label: 'Square' },
@@ -161,7 +178,7 @@ export const getSuggestionItems = ({ query }: { query: string }) => {
         },
         {
             title: 'Numbered List',
-            icon: React.createElement(ListOrdered, { size: 14 }),
+            icon: ICON_LIST_ORDERED,
             flags: [
                 { key: 'n', label: 'Numbers', isDefault: true },
                 { key: 'r', label: 'Roman' },
@@ -193,7 +210,7 @@ export const getSuggestionItems = ({ query }: { query: string }) => {
         },
         {
             title: 'Task List',
-            icon: React.createElement(CheckSquare, { size: 14 }),
+            icon: ICON_CHECK,
             flags: [{ key: 't', label: 'Toggleable' }] as CommandFlag[],
             command: ({ editor, range }: any) => {
                 if (activeFlags.includes('t')) {
@@ -210,7 +227,7 @@ export const getSuggestionItems = ({ query }: { query: string }) => {
         },
         {
             title: 'Code Block',
-            icon: React.createElement(Code, { size: 14 }),
+            icon: ICON_CODE,
             flags: [
                 { key: 'ln', label: 'Line Numbers' },
                 { key: 'w', label: 'Word Wrap' }
@@ -225,7 +242,7 @@ export const getSuggestionItems = ({ query }: { query: string }) => {
         },
         {
             title: 'Quote',
-            icon: React.createElement(Quote, { size: 14 }),
+            icon: ICON_QUOTE,
             flags: [{ key: 'a', label: 'Author' }] as CommandFlag[],
             command: ({ editor, range }: any) => {
                 if (activeFlags.includes('a')) {
@@ -248,15 +265,12 @@ export const getSuggestionItems = ({ query }: { query: string }) => {
         },
         {
             title: 'Table',
-            icon: React.createElement(Grid3X3, { size: 14 }),
+            icon: ICON_GRID,
             flags: [
                 { key: 'c', label: 'Color' },
             ] as CommandFlag[],
             command: ({ editor, range }: any) => {
-                const colorMap: Record<string, string> = { cr: 'red', cy: 'yellow', cg: 'green', cb: 'blue', cp: 'purple', ca: 'aqua', co: 'orange' };
-                const colorFlag = activeFlags.slice().reverse().find(f => Object.keys(colorMap).includes(f) || f.startsWith('c'));
-                let headerColor = activeFlags.includes('c') ? 'aqua' : '';
-                if (colorFlag && colorFlag !== 'c') headerColor = colorMap[colorFlag] || colorFlag.slice(1);
+                const headerColor = resolveColor(activeFlags, 'aqua') || '';
 
                 editor.chain().focus().deleteRange(range).insertContent({
                     type: 'tableBlock',
@@ -287,7 +301,7 @@ export const getSuggestionItems = ({ query }: { query: string }) => {
         },
         {
             title: 'Toggle',
-            icon: React.createElement(ChevronDown, { size: 14 }),
+            icon: ICON_CHEVRON,
             flags: [
                 { key: 't', label: 'Tabbed', isDefault: true },
                 { key: 'nt', label: 'No Tab' },
@@ -298,19 +312,13 @@ export const getSuggestionItems = ({ query }: { query: string }) => {
             ] as CommandFlag[],
             command: ({ editor, range }: any) => {
                 const tabbed = !activeFlags.includes('nt');
-                
+
                 let headerStyle = 'normal';
                 if (activeFlags.includes('h1')) headerStyle = 'h1';
                 else if (activeFlags.includes('h2')) headerStyle = 'h2';
                 else if (activeFlags.includes('s')) headerStyle = 'small';
 
-                const colorMap: Record<string, string> = { cr: 'red', cy: 'yellow', cg: 'green', cb: 'blue', cp: 'purple', ca: 'aqua', co: 'orange' };
-                const colorFlag = activeFlags.slice().reverse().find(f => Object.keys(colorMap).includes(f) || f.startsWith('c'));
-                let headerColor = '';
-                if (colorFlag) {
-                    if (colorFlag === 'c') headerColor = 'yellow';
-                    else headerColor = colorMap[colorFlag] || colorFlag.slice(1);
-                }
+                const headerColor = resolveColor(activeFlags, 'yellow') || '';
 
                 editor.chain().focus().deleteRange(range).insertContent({
                     type: 'toggleBlock',
@@ -321,7 +329,7 @@ export const getSuggestionItems = ({ query }: { query: string }) => {
         },
         {
             title: 'Divider',
-            icon: React.createElement(Minus, { size: 14 }),
+            icon: ICON_MINUS,
             flags: [
                 { key: 'b', label: 'Bold' },
                 { key: 'a', label: 'Accent' }
@@ -337,7 +345,7 @@ export const getSuggestionItems = ({ query }: { query: string }) => {
         },
         {
             title: 'Image',
-            icon: React.createElement(Image, { size: 14 }),
+            icon: ICON_IMAGE,
             flags: [
                 { key: 'f', label: 'Full Width' },
                 { key: 'c', label: 'Caption' }
@@ -387,7 +395,7 @@ export const getSuggestionItems = ({ query }: { query: string }) => {
         },
         {
             title: 'PDF Document',
-            icon: React.createElement(FileText, { size: 14 }),
+            icon: ICON_FILE_TEXT,
             flags: [] as CommandFlag[],
             command: ({ editor, range }: any) => {
                 editor.chain().focus().deleteRange(range).run();
@@ -432,7 +440,7 @@ export const getSuggestionItems = ({ query }: { query: string }) => {
         },
         {
             title: 'Subpage',
-            icon: React.createElement(FolderPlus, { size: 14 }),
+            icon: ICON_FOLDER,
             flags: [] as CommandFlag[],
             command: ({ editor, range }: any) => {
                 const parentPageId = useStore.getState().activePageId;

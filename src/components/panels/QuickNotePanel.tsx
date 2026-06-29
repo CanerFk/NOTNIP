@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useStore } from '../../store/useStore';
 import { Plus, X } from 'lucide-react';
 
@@ -20,6 +20,39 @@ function truncatePreview(text: string, maxLen: number = 12): string {
     const firstLine = text.split('\n')[0];
     if (firstLine.length <= maxLen) return firstLine;
     return firstLine.slice(0, maxLen) + '...';
+}
+
+interface ActiveNoteEditorProps {
+    note: { id: string; text: string };
+    onUpdate: (id: string, text: string) => void;
+}
+
+function ActiveNoteEditor({ note, onUpdate }: ActiveNoteEditorProps) {
+    const [localText, setLocalText] = useState(note.text);
+    const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+    useEffect(() => {
+        setLocalText(note.text);
+    }, [note.id]);
+
+    useEffect(() => {
+        return () => { if (debounceRef.current) clearTimeout(debounceRef.current); };
+    }, []);
+
+    const handleChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+        const val = e.target.value;
+        setLocalText(val);
+        if (debounceRef.current) clearTimeout(debounceRef.current);
+        debounceRef.current = setTimeout(() => onUpdate(note.id, val), 400);
+    };
+
+    return (
+        <textarea
+            value={localText}
+            onChange={handleChange}
+            className="flex-1 w-full bg-transparent text-main text-[13px] leading-relaxed p-1 resize-none focus:outline-none custom-scrollbar"
+        />
+    );
 }
 
 export function QuickNotePanel() {
@@ -59,10 +92,9 @@ export function QuickNotePanel() {
                             <X size={16} />
                         </button>
                     </div>
-                    <textarea
-                        value={activeNote.text}
-                        onChange={(e) => updateQuickNoteText(activeNote.id, e.target.value)}
-                        className="flex-1 w-full bg-transparent text-main text-[13px] leading-relaxed p-1 resize-none focus:outline-none custom-scrollbar"
+                    <ActiveNoteEditor
+                        note={activeNote}
+                        onUpdate={updateQuickNoteText}
                     />
                     <div className="text-[10px] text-muted/50 text-right pt-1 border-t border-border/50">
                         {new Date(activeNote.createdAt).toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}

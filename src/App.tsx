@@ -26,7 +26,7 @@ function App() {
 
   return (
     <Layout>
-      <Editor />
+      {(setWordCount) => <Editor setWordCount={setWordCount} />}
     </Layout>
   );
 }

@@ -25,7 +25,11 @@
       "assetProtocol": {
         "enable": true,
         "scope": [
-          "**"
+          "$APPDATA/**",
+          "$DOCUMENT/**",
+          "$PICTURE/**",
+          "$DOWNLOAD/**",
+          "$DESKTOP/**"
         ]
       }
     }
@@ -50,6 +54,9 @@
         "displayLanguageSelector": false,
         "installerIcon": "icons/icon.ico"
       }
+    },
+    "macOS": {
+      "frameworks": []
     },
     "linux": {
       "deb": {

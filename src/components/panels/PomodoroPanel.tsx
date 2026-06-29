@@ -1,12 +1,15 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { Play, Square, Coffee, Briefcase, Moon, Settings, X, RefreshCw, RotateCcw } from 'lucide-react';
 import { useStore } from '../../store/useStore';
+import { cn } from '../../lib/utils';
 
-const COLOR_MAP = {
-    work: 'var(--gruv-red)',
-    shortBreak: 'var(--gruv-blue)',
-    longBreak: 'var(--gruv-purple)'
+const COLOR_CLASSES = {
+    work: 'text-gruv-red',
+    shortBreak: 'text-gruv-blue',
+    longBreak: 'text-gruv-purple'
 };
+
+const SILKSCREEN_STYLE = { fontFamily: '"Silkscreen", monospace' };
 
 const MODE_ICONS = {
     work: Briefcase,
@@ -167,11 +170,11 @@ export function PomodoroPanel() {
     const ActiveIcon = MODE_ICONS[currentMode as keyof typeof MODE_ICONS] || Briefcase;
 
     return (
-        <div className="relative flex flex-col h-full bg-[var(--bg-primary)] overflow-hidden" style={{ fontFamily: '"Silkscreen", monospace' }}>
+        <div className="relative flex flex-col h-full bg-[var(--bg-primary)] overflow-hidden" style={SILKSCREEN_STYLE}>
             <div className="flex flex-col h-full z-0 p-3 pb-2">
 
                 <div className="flex items-center justify-between opacity-90 select-none pb-3 border-b-2 border-border mb-2">
-                    <div className="flex items-center gap-2 drop-shadow-sm transition-colors duration-300" style={{ color: COLOR_MAP[currentMode as keyof typeof COLOR_MAP] }}>
+                    <div className={cn("flex items-center gap-2 drop-shadow-sm transition-colors duration-300", COLOR_CLASSES[currentMode as keyof typeof COLOR_CLASSES])}>
                         <ActiveIcon size={18} strokeWidth={2.5} />
                         <span className="text-xl leading-none uppercase tracking-widest translate-y-[1px]">
                             {currentMode === 'work' ? 'FOCUS' : currentMode === 'shortBreak' ? 'SHORT BREAK' : 'LONG BREAK'}
@@ -191,8 +194,7 @@ export function PomodoroPanel() {
                 </div>
 
                 <div className="flex-1 flex flex-col items-center justify-center">
-                    <div className="text-[3.5rem] leading-[1] font-bold tracking-[0.02em] drop-shadow-[2px_2px_0_var(--shadow-color)] select-none transition-colors duration-500"
-                        style={{ color: isRunning ? 'var(--gruv-green)' : 'var(--text-main)' }}>
+                    <div className={cn("text-[3.5rem] leading-[1] font-bold tracking-[0.02em] drop-shadow-[2px_2px_0_var(--shadow-color)] select-none transition-colors duration-500", isRunning ? 'text-gruv-green' : 'text-main')}>
                         {String(minutes).padStart(2, '0')}:{String(seconds).padStart(2, '0')}
                     </div>
                 </div>
@@ -217,7 +219,7 @@ export function PomodoroPanel() {
 
             <div
                 className={`absolute inset-0 bg-[var(--bg-primary)] z-10 p-3 flex flex-col transition-transform duration-200 ${isSettingsOpen ? 'translate-x-0' : 'translate-x-full'}`}
-                style={{ fontFamily: '"Silkscreen", monospace' }}
+                style={SILKSCREEN_STYLE}
             >
                 <div className="flex items-center justify-between pb-2 border-b-2 border-border mb-2">
                     <span className="text-base tracking-widest uppercase flex items-center gap-1.5 text-accent">

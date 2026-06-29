@@ -82,6 +82,7 @@ class DatabaseService {
                     updated_at INTEGER
                 );
                 CREATE INDEX IF NOT EXISTS idx_parent_id ON notes(parent_id);
+                CREATE INDEX IF NOT EXISTS idx_notes_active ON notes(is_deleted, updated_at DESC);
             `);
 
             await this.db.execute(`
@@ -192,6 +193,16 @@ class DatabaseService {
         await db.execute('UPDATE notes SET is_deleted = 1, updated_at = $1 WHERE id = $2', [Date.now(), id]);
     }
 
+    async deleteNotesBatch(ids: string[]): Promise<void> {
+        if (ids.length === 0) return;
+        const db = await this.ensureDb();
+        const placeholders = ids.map((_, i) => `$${i + 2}`).join(', ');
+        await db.execute(
+            `UPDATE notes SET is_deleted = 1, updated_at = $1 WHERE id IN (${placeholders})`,
+            [Date.now(), ...ids]
+        );
+    }
+
     async getNotesMetadata(): Promise<NoteMetadata[]> {
         const db = await this.ensureDb();
         return await db.select<NoteMetadata[]>(
@@ -225,7 +236,7 @@ class DatabaseService {
     async getNoteById(id: string): Promise<(NoteMetadata & { content: any }) | null> {
         const db = await this.ensureDb();
         const result = await db.select<(NoteMetadata & { content: string })[]>(
-            `SELECT * FROM notes WHERE id = $1 AND is_deleted = 0`,
+            `SELECT id, parent_id, type, title, icon, cover_image, properties, is_deleted, updated_at, created_at, content FROM notes WHERE id = $1 AND is_deleted = 0`,
             [id]
         );
         if (result.length === 0) return null;

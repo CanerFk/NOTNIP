@@ -1,9 +1,10 @@
 import {
     FileText, Folder, Hash, Bookmark, Star, Heart,
     CheckCircle, Zap, Shield, Crown, Key, Briefcase,
-    Camera, Music, Book, MapPin, Flag, Bell, Globe, Sparkles
+    Camera, Music, Book, MapPin, Flag, Bell, Globe, Sparkles,
+    type LucideIcon
 } from 'lucide-react';
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, type ComponentType } from 'react';
 import { cn } from '../../lib/utils';
 
 export const AVAILABLE_ICONS = [
@@ -12,30 +13,32 @@ export const AVAILABLE_ICONS = [
     'camera', 'music', 'book', 'map', 'flag', 'bell', 'globe', 'sparkles'
 ];
 
+const ICON_MAP: Record<string, LucideIcon> = {
+    text: FileText,
+    folder: Folder,
+    hash: Hash,
+    bookmark: Bookmark,
+    star: Star,
+    heart: Heart,
+    check: CheckCircle,
+    zap: Zap,
+    shield: Shield,
+    crown: Crown,
+    key: Key,
+    briefcase: Briefcase,
+    camera: Camera,
+    music: Music,
+    book: Book,
+    map: MapPin,
+    flag: Flag,
+    bell: Bell,
+    globe: Globe,
+    sparkles: Sparkles,
+};
+
 export const renderIcon = (type: string, size = 16) => {
-    switch (type) {
-        case 'text': return <FileText size={size} />;
-        case 'folder': return <Folder size={size} />;
-        case 'hash': return <Hash size={size} />;
-        case 'bookmark': return <Bookmark size={size} />;
-        case 'star': return <Star size={size} />;
-        case 'heart': return <Heart size={size} />;
-        case 'check': return <CheckCircle size={size} />;
-        case 'zap': return <Zap size={size} />;
-        case 'shield': return <Shield size={size} />;
-        case 'crown': return <Crown size={size} />;
-        case 'key': return <Key size={size} />;
-        case 'briefcase': return <Briefcase size={size} />;
-        case 'camera': return <Camera size={size} />;
-        case 'music': return <Music size={size} />;
-        case 'book': return <Book size={size} />;
-        case 'map': return <MapPin size={size} />;
-        case 'flag': return <Flag size={size} />;
-        case 'bell': return <Bell size={size} />;
-        case 'globe': return <Globe size={size} />;
-        case 'sparkles': return <Sparkles size={size} />;
-        default: return <FileText size={size} />;
-    }
+    const Icon = (ICON_MAP[type] || FileText) as ComponentType<{ size: number }>;
+    return <Icon size={size} />;
 };
 
 interface IconPickerProps {
@@ -50,7 +53,6 @@ export function IconPicker({ currentIcon = 'text', onSelect, size = 16, classNam
     const [isOpen, setIsOpen] = useState(false);
     const containerRef = useRef<HTMLDivElement>(null);
 
-    // Close on click outside
     useEffect(() => {
         const handleClickOutside = (event: MouseEvent) => {
             if (containerRef.current && !containerRef.current.contains(event.target as Node)) {

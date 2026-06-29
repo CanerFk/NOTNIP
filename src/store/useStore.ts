@@ -37,7 +37,6 @@ interface StoreState {
     pages: PageMetadata[];
     activePageId: string | null;
     isLoading: boolean;
-
     fetchPages: () => Promise<void>;
     addPage: () => Promise<void>;
     addSubpage: (parentId: string) => Promise<string>;
@@ -52,8 +51,6 @@ interface StoreState {
     updatePageIcon: (id: string, icon: string) => void;
     updatePageContent: (id: string, content: any) => void;
 
-    wordCount: number;
-    setWordCount: (count: number) => void;
     saveStatus: 'idle' | 'saving' | 'saved' | 'error';
     setSaveStatus: (status: 'idle' | 'saving' | 'saved' | 'error') => void;
 
@@ -111,7 +108,7 @@ interface StoreState {
     updateCalendarTodos: (date: string, todos: { id: string; text: string; done: boolean }[]) => void;
 }
 
-const debouncedSaveContent = debounce(async (
+export const debouncedSaveContent = debounce(async (
     id: string,
     content: any,
     setSaveStatus: (status: 'idle' | 'saving' | 'saved' | 'error') => void
@@ -126,15 +123,18 @@ const debouncedSaveContent = debounce(async (
     }
 }, 1000);
 
+if (typeof window !== 'undefined') {
+    window.addEventListener('beforeunload', () => {
+        debouncedSaveContent.flush();
+    });
+}
+
 export const useStore = create<StoreState>()(
     persist(
         (set, get) => ({
             pages: [],
             activePageId: null,
             isLoading: true,
-            wordCount: 0,
-            setWordCount: (count) => set({ wordCount: count }),
-
             saveStatus: 'idle',
             setSaveStatus: (status) => set({ saveStatus: status }),
 
@@ -318,9 +318,7 @@ export const useStore = create<StoreState>()(
                 });
 
                 try {
-                    for (const pageId of toDelete) {
-                        await dbService.deleteNote(pageId);
-                    }
+                    await dbService.deleteNotesBatch(toDelete);
                 } catch (e) {
                     console.error("Failed to delete pages in DB, rolling back", e);
                     set({ pages: previousPages, activePageId: previousActiveId });

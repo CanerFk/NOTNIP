@@ -1,5 +1,5 @@
 import { NodeViewWrapper } from '@tiptap/react';
-import React, { useCallback, useState, useRef, useEffect, memo } from 'react';
+import React, { useCallback, useState, useRef, useEffect, useMemo, memo } from 'react';
 import { GripHorizontal, X, AlignLeft, AlignCenter, AlignRight, Minus, Maximize2 } from 'lucide-react';
 import { cn } from '../../../lib/utils';
 
@@ -35,30 +35,24 @@ export const BlockWrapper = memo(function BlockWrapper({
     const wrapperRef = useRef<HTMLDivElement>(null);
     const startXRef = useRef(0);
     const startWRef = useRef(0);
+    const activeListenersRef = useRef<{ move: ((e: MouseEvent) => void) | null; up: (() => void) | null }>({ move: null, up: null });
 
-    // Sync width state with props if they change externally
+
+
     useEffect(() => {
         if (width) setW(width);
     }, [width]);
 
-
-
-    // --- RESIZE HANDLERS ---
-    const handleMouseDown = useCallback((e: React.MouseEvent) => {
-        e.preventDefault();
-        e.stopPropagation(); // Prevent editor selection
-        setIsResizing(true);
-        startXRef.current = e.clientX;
-        const currentWidth = wrapperRef.current?.offsetWidth || 0;
-        startWRef.current = currentWidth;
-
-        document.addEventListener('mousemove', handleMouseMove);
-        document.addEventListener('mouseup', handleMouseUp);
+    useEffect(() => {
+        return () => {
+            if (activeListenersRef.current.move) document.removeEventListener('mousemove', activeListenersRef.current.move);
+            if (activeListenersRef.current.up) document.removeEventListener('mouseup', activeListenersRef.current.up);
+        };
     }, []);
 
     const handleMouseMove = useCallback((e: MouseEvent) => {
         const dx = e.clientX - startXRef.current;
-        const newW = Math.max(200, startWRef.current + dx); // Min width 200px
+        const newW = Math.max(200, startWRef.current + dx);
         setW(`${newW}px`);
     }, []);
 
@@ -66,21 +60,52 @@ export const BlockWrapper = memo(function BlockWrapper({
         setIsResizing(false);
         document.removeEventListener('mousemove', handleMouseMove);
         document.removeEventListener('mouseup', handleMouseUp);
-
+        activeListenersRef.current.move = null;
+        activeListenersRef.current.up = null;
         if (wrapperRef.current) {
             updateAttributes({ width: `${wrapperRef.current.offsetWidth}px` });
         }
     }, [updateAttributes, handleMouseMove]);
 
-    // --- TOGGLES ---
-    const toggleMinimize = () => updateAttributes({ isMinimized: !isMinimized });
-    const setAlign = (a: 'left' | 'center' | 'right') => updateAttributes({ align: a });
+    const handleMouseDown = useCallback((e: React.MouseEvent) => {
+        e.preventDefault();
+        e.stopPropagation();
+        setIsResizing(true);
+        startXRef.current = e.clientX;
+        const currentWidth = wrapperRef.current?.offsetWidth || 0;
+        startWRef.current = currentWidth;
+        activeListenersRef.current.move = handleMouseMove;
+        activeListenersRef.current.up = handleMouseUp;
+        document.addEventListener('mousemove', handleMouseMove);
+        document.addEventListener('mouseup', handleMouseUp);
+    }, [handleMouseMove, handleMouseUp]);
+
+    const toggleMinimize = useCallback(() => updateAttributes({ isMinimized: !isMinimized }), [updateAttributes, isMinimized]);
+    const setAlign = useCallback((a: 'left' | 'center' | 'right') => updateAttributes({ align: a }), [updateAttributes]);
 
     const alignClass = {
         left: 'mr-auto',
         center: 'mx-auto',
         right: 'ml-auto'
     }[align as string] || 'mx-auto';
+
+    const wrapperStyle = useMemo(() => ({
+        width: isMinimized ? '260px' : w,
+        minWidth: isMinimized ? '260px' : 'auto',
+        maxWidth: isMinimized ? '260px' : '100%',
+        marginTop: isMinimized ? '0.25rem' : '0.5rem',
+        marginBottom: isMinimized ? '0.25rem' : '0.5rem',
+        marginLeft: isMinimized ? '0.25rem' : undefined,
+        marginRight: isMinimized ? '0.25rem' : undefined,
+        transitionProperty: 'all',
+        transitionDelay: isMinimized ? '300ms' : '0ms',
+        minHeight: isMinimized ? '32px' : undefined
+    }), [isMinimized, w]);
+
+    const contentStyle = useMemo(() => ({
+        transitionProperty: 'grid-template-rows, opacity',
+        transitionDelay: isMinimized ? '0ms' : '300ms'
+    }), [isMinimized]);
 
     return (
         <NodeViewWrapper
@@ -90,24 +115,7 @@ export const BlockWrapper = memo(function BlockWrapper({
                 isMinimized ? "inline-block align-middle" : "block", // Layout behavior switch
                 className
             )}
-            style={{
-                // Enforce strictly 260px width when minimized
-                width: isMinimized ? '260px' : w,
-                minWidth: isMinimized ? '260px' : 'auto',
-                maxWidth: isMinimized ? '260px' : '100%',
-
-                // Transition margins manually to prevent instant jumps
-                marginTop: isMinimized ? '0.25rem' : '0.5rem',
-                marginBottom: isMinimized ? '0.25rem' : '0.5rem',
-                marginLeft: isMinimized ? '0.25rem' : undefined, // alignClass handles horizontal when open
-                marginRight: isMinimized ? '0.25rem' : undefined,
-
-                // Open: Width expands immediately (delay 0ms).
-                // Close: Wait for height to collapse (delay 300ms).
-                transitionProperty: 'all',
-                transitionDelay: isMinimized ? '300ms' : '0ms',
-                minHeight: isMinimized ? '32px' : undefined
-            }}
+            style={wrapperStyle}
         >
             <div
                 ref={wrapperRef}
@@ -169,16 +177,7 @@ export const BlockWrapper = memo(function BlockWrapper({
                         "grid transition-all duration-300 ease-in-out bg-element",
                         isMinimized ? "grid-rows-[0fr] opacity-0" : "grid-rows-[1fr] opacity-100"
                     )}
-                    style={{
-                        // PIANO ANIMATION: SEQUENCE LOGIC
-                        // Open: Grid expands (300ms) -> Wait -> Width expands
-                        // Close: Grid collapses (300ms) -> Wait -> Width shrinks
-                        // Actually per prompt:
-                        // Open: Width (immediate) -> Height
-                        // Close: Height (immediate) -> Width
-                        transitionProperty: "grid-template-rows, opacity",
-                        transitionDelay: isMinimized ? '0ms' : '300ms'
-                    }}
+                    style={contentStyle}
                 >
                     <div className="overflow-hidden min-w-0">
                         {/* Wrapper div required for grid animation to work on height */}

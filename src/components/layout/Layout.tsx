@@ -9,8 +9,8 @@ import { cn } from '../../lib/utils';
 import { useEffect, useState } from 'react';
 import { Minimize2 } from 'lucide-react';
 
-export function Layout({ children }: { children: React.ReactNode }) {
-    const wordCount = useStore(state => state.wordCount);
+export function Layout({ children }: { children: (setWordCount: (n: number) => void) => React.ReactNode }) {
+    const [wordCount, setWordCount] = useState(0);
     const isFocusMode = useStore(state => state.isFocusMode);
     const toggleFocusMode = useStore(state => state.toggleFocusMode);
     const sidebarWidth = useStore(state => state.sidebarWidth);
@@ -95,7 +95,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
 
                 <main className="flex-1 h-full overflow-hidden relative flex flex-col">
                     <div className="flex-1 overflow-hidden relative">
-                        {children}
+                        {children(setWordCount)}
                     </div>
 
                     {/* Status Bar */}
