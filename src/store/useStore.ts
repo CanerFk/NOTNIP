@@ -1,370 +1,529 @@
-import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
-import { dbService, NoteMetadata } from '../lib/database.ts';
+import { create } from "zustand";
+import { persist } from "zustand/middleware";
+import { dbService, NoteMetadata } from "../lib/database.ts";
 
-export interface PageMetadata extends NoteMetadata { }
+export interface PageMetadata extends NoteMetadata {}
 
-function debounce<T extends (...args: any[]) => any>(fn: T, ms: number): T & { flush: () => void } {
-    let timeoutId: ReturnType<typeof setTimeout> | null = null;
-    let lastArgs: any[] | null = null;
+function debounce<T extends (...args: any[]) => any>(
+  fn: T,
+  ms: number,
+): T & { flush: () => void } {
+  let timeoutId: ReturnType<typeof setTimeout> | null = null;
+  let lastArgs: any[] | null = null;
 
-    const debounced = (...args: any[]) => {
-        lastArgs = args;
-        if (timeoutId !== null) clearTimeout(timeoutId);
-        timeoutId = setTimeout(() => {
-            timeoutId = null;
-            lastArgs = null;
-            fn(...args);
-        }, ms);
-    };
+  const debounced = (...args: any[]) => {
+    lastArgs = args;
+    if (timeoutId !== null) clearTimeout(timeoutId);
+    timeoutId = setTimeout(() => {
+      timeoutId = null;
+      lastArgs = null;
+      fn(...args);
+    }, ms);
+  };
 
-    debounced.flush = () => {
-        if (timeoutId !== null) {
-            clearTimeout(timeoutId);
-            timeoutId = null;
-            if (lastArgs) {
-                const args = lastArgs;
-                lastArgs = null;
-                fn(...args);
-            }
-        }
-    };
+  debounced.flush = () => {
+    if (timeoutId !== null) {
+      clearTimeout(timeoutId);
+      timeoutId = null;
+      if (lastArgs) {
+        const args = lastArgs;
+        lastArgs = null;
+        fn(...args);
+      }
+    }
+  };
 
-    return debounced as T & { flush: () => void };
+  return debounced as T & { flush: () => void };
 }
 
 interface StoreState {
-    pages: PageMetadata[];
-    activePageId: string | null;
-    isLoading: boolean;
-    fetchPages: () => Promise<void>;
-    addPage: () => Promise<void>;
-    addSubpage: (parentId: string) => Promise<string>;
-    removePage: (id: string, deleteDescendants?: boolean) => Promise<void>;
+  pages: PageMetadata[];
+  activePageId: string | null;
+  isLoading: boolean;
+  fetchPages: () => Promise<void>;
+  addPage: () => Promise<void>;
+  addSubpage: (parentId: string) => Promise<string>;
+  removePage: (id: string, deleteDescendants?: boolean) => Promise<void>;
 
-    deletionCandidateId: string | null;
-    setDeletionCandidateId: (id: string | null) => void;
+  deletionCandidateId: string | null;
+  setDeletionCandidateId: (id: string | null) => void;
 
-    setActivePage: (id: string) => void;
+  setActivePage: (id: string) => void;
+  closeActivePage: () => void;
 
-    updatePageTitle: (id: string, title: string) => void;
-    updatePageIcon: (id: string, icon: string) => void;
-    updatePageContent: (id: string, content: any) => void;
+  updatePageTitle: (id: string, title: string) => void;
+  updatePageIcon: (id: string, icon: string) => void;
+  updatePageContent: (id: string, content: any) => void;
 
-    saveStatus: 'idle' | 'saving' | 'saved' | 'error';
-    setSaveStatus: (status: 'idle' | 'saving' | 'saved' | 'error') => void;
+  saveStatus: "idle" | "saving" | "saved" | "error";
+  setSaveStatus: (status: "idle" | "saving" | "saved" | "error") => void;
 
-    isSettingsOpen: boolean;
-    toggleSettings: () => void;
+  isSettingsOpen: boolean;
+  toggleSettings: () => void;
 
-    themePreferences: {
-        accentColor: string;
-        sidebarColor: string;
-        sidebarHoverColor: string;
-        sidebarHoverOpacity: number;
-        logoColor: string;
-        activeItemColor: string;
-        headingColor: string;
-        editorTitleColor: string;
-        fontBody: string;
-        fontCode: string;
-        readableLineLength: boolean;
-    };
-    updateTheme: (prefs: Partial<StoreState['themePreferences']>) => void;
+  themePreferences: {
+    accentColor: string;
+    sidebarColor: string;
+    sidebarHoverColor: string;
+    sidebarHoverOpacity: number;
+    logoColor: string;
+    activeItemColor: string;
+    headingColor: string;
+    editorTitleColor: string;
+    fontBody: string;
+    fontCode: string;
+    readableLineLength: boolean;
+  };
+  updateTheme: (prefs: Partial<StoreState["themePreferences"]>) => void;
 
-    panels: { id: string; type: string; position: { x: number; y: number } }[];
-    openPanel: (type: string) => void;
-    closePanel: (id: string) => void;
-    updatePanelPosition: (id: string, position: { x: number; y: number }) => void;
+  panels: { id: string; type: string; position: { x: number; y: number } }[];
+  openPanel: (type: string) => void;
+  closePanel: (id: string) => void;
+  updatePanelPosition: (id: string, position: { x: number; y: number }) => void;
 
-    quickNotes: { id: string; text: string; createdAt: number }[];
-    addQuickNote: (text: string) => void;
-    removeQuickNote: (id: string) => void;
-    updateQuickNoteText: (id: string, text: string) => void;
+  quickNotes: { id: string; text: string; createdAt: number }[];
+  addQuickNote: (text: string) => void;
+  removeQuickNote: (id: string) => void;
+  updateQuickNoteText: (id: string, text: string) => void;
 
-    pomodoroState: {
-        isRunning: boolean;
-        startedAt: number | null;
-        pausedRemaining: number | null;
-        sessionsCompleted: number;
-        focusDuration: number;
-        shortBreakDuration: number;
-        longBreakDuration: number;
-        mode: 'work' | 'shortBreak' | 'longBreak';
-    };
-    updatePomodoro: (state: Partial<StoreState['pomodoroState']>) => void;
+  pomodoroState: {
+    isRunning: boolean;
+    startedAt: number | null;
+    pausedRemaining: number | null;
+    sessionsCompleted: number;
+    focusDuration: number;
+    shortBreakDuration: number;
+    longBreakDuration: number;
+    mode: "work" | "shortBreak" | "longBreak";
+  };
+  updatePomodoro: (state: Partial<StoreState["pomodoroState"]>) => void;
 
-    isFocusMode: boolean;
-    toggleFocusMode: () => void;
+  isFocusMode: boolean;
+  toggleFocusMode: () => void;
 
-    sidebarWidth: number;
-    setSidebarWidth: (width: number) => void;
+  sidebarWidth: number;
+  setSidebarWidth: (width: number) => void;
 
-    isCalendarModalOpen: boolean;
-    toggleCalendarModal: () => void;
-    calendarSelectedDate: string;
-    setCalendarSelectedDate: (date: string) => void;
-    calendarTodosByDate: Record<string, { id: string; text: string; done: boolean }[]>;
-    updateCalendarTodos: (date: string, todos: { id: string; text: string; done: boolean }[]) => void;
+  isCalendarModalOpen: boolean;
+  toggleCalendarModal: () => void;
+  calendarSelectedDate: string;
+  setCalendarSelectedDate: (date: string) => void;
+  calendarTodosByDate: Record<
+    string,
+    { id: string; text: string; done: boolean }[]
+  >;
+  updateCalendarTodos: (
+    date: string,
+    todos: { id: string; text: string; done: boolean }[],
+  ) => void;
+
+  editorAppearance: {
+    fontSize: number;
+    lineHeight: number;
+    paragraphSpacing: number;
+    zoom: number;
+    justifyText: boolean;
+  };
+  updateEditorAppearance: (
+    prefs: Partial<StoreState["editorAppearance"]>,
+  ) => void;
+
+  // Favorites
+  favoritePageIds: string[];
+  toggleFavorite: (id: string) => void;
+
+  // Recent pages (last 20 visited, IDs only)
+  recentPageIds: string[];
+
+  // Quick switcher / command palette open state
+  isQuickSwitcherOpen: boolean;
+  openQuickSwitcher: () => void;
+  closeQuickSwitcher: () => void;
+
+  // Daily note
+  openOrCreateDailyNote: () => Promise<void>;
 }
 
-export const debouncedSaveContent = debounce(async (
+export const debouncedSaveContent = debounce(
+  async (
     id: string,
     content: any,
-    setSaveStatus: (status: 'idle' | 'saving' | 'saved' | 'error') => void
-) => {
-    setSaveStatus('saving');
+    setSaveStatus: (status: "idle" | "saving" | "saved" | "error") => void,
+  ) => {
+    setSaveStatus("saving");
     try {
-        await dbService.saveNoteContent(id, content);
-        setSaveStatus('saved');
+      await dbService.saveNoteContent(id, content);
+      setSaveStatus("saved");
     } catch (error) {
-        console.error("Failed to save note content:", error);
-        setSaveStatus('error');
+      console.error("Failed to save note content:", error);
+      setSaveStatus("error");
     }
-}, 1000);
+  },
+  1000,
+);
 
-if (typeof window !== 'undefined') {
-    window.addEventListener('beforeunload', () => {
-        debouncedSaveContent.flush();
-    });
+if (typeof window !== "undefined") {
+  window.addEventListener("beforeunload", () => {
+    debouncedSaveContent.flush();
+  });
 }
 
 export const useStore = create<StoreState>()(
-    persist(
-        (set, get) => ({
-            pages: [],
-            activePageId: null,
-            isLoading: true,
-            saveStatus: 'idle',
-            setSaveStatus: (status) => set({ saveStatus: status }),
+  persist(
+    (set, get) => ({
+      pages: [],
+      activePageId: null,
+      isLoading: true,
+      saveStatus: "idle",
+      setSaveStatus: (status) => set({ saveStatus: status }),
 
-            isSettingsOpen: false,
-            toggleSettings: () => set((state) => ({ isSettingsOpen: !state.isSettingsOpen })),
+      isSettingsOpen: false,
+      toggleSettings: () =>
+        set((state) => ({ isSettingsOpen: !state.isSettingsOpen })),
 
-            themePreferences: {
-                accentColor: '#e78a4e',
-                sidebarColor: '#504945',
-                sidebarHoverColor: '#d3869b',
-                sidebarHoverOpacity: 0.1,
-                logoColor: '#d3869b',
-                activeItemColor: '#d3869b',
-                headingColor: '#d8a657',
-                editorTitleColor: '#e78a4e',
-                fontBody: 'Inter',
-                fontCode: 'JetBrains Mono',
-                readableLineLength: true,
-            },
-            updateTheme: (prefs) => set((state) => ({
-                themePreferences: { ...state.themePreferences, ...prefs }
-            })),
+      themePreferences: {
+        accentColor: "#e78a4e",
+        sidebarColor: "#504945",
+        sidebarHoverColor: "#d3869b",
+        sidebarHoverOpacity: 0.1,
+        logoColor: "#d3869b",
+        activeItemColor: "#d3869b",
+        headingColor: "#d8a657",
+        editorTitleColor: "#e78a4e",
+        fontBody: "Inter",
+        fontCode: "JetBrains Mono",
+        readableLineLength: true,
+      },
+      updateTheme: (prefs) =>
+        set((state) => ({
+          themePreferences: { ...state.themePreferences, ...prefs },
+        })),
 
-            panels: [],
-            openPanel: (type) => set((state) => {
-                if (state.panels.find(p => p.type === type)) return state;
-                return {
-                    panels: [...state.panels, {
-                        id: crypto.randomUUID(),
-                        type,
-                        position: { x: 100 + state.panels.length * 30, y: 100 + state.panels.length * 30 }
-                    }]
-                };
-            }),
-            closePanel: (id) => set((state) => ({
-                panels: state.panels.filter(p => p.id !== id)
-            })),
-            updatePanelPosition: (id, position) => set((state) => ({
-                panels: state.panels.map(p => p.id === id ? { ...p, position } : p)
-            })),
+      editorAppearance: {
+        fontSize: 17,
+        lineHeight: 1.1,
+        paragraphSpacing: 0.4,
+        zoom: 100,
+        justifyText: false,
+      },
+      updateEditorAppearance: (prefs) =>
+        set((state) => ({
+          editorAppearance: { ...state.editorAppearance, ...prefs },
+        })),
 
-            quickNotes: [],
-            addQuickNote: (text) => set((state) => ({
-                quickNotes: [{ id: crypto.randomUUID(), text, createdAt: Date.now() }, ...(state.quickNotes || [])]
-            })),
-            removeQuickNote: (id) => set((state) => ({
-                quickNotes: (state.quickNotes || []).filter(n => n.id !== id)
-            })),
-            updateQuickNoteText: (id, text) => set((state) => ({
-                quickNotes: (state.quickNotes || []).map(n => n.id === id ? { ...n, text } : n)
-            })),
+      favoritePageIds: [],
+      toggleFavorite: (id) =>
+        set((state) => ({
+          favoritePageIds: state.favoritePageIds.includes(id)
+            ? state.favoritePageIds.filter((f) => f !== id)
+            : [...state.favoritePageIds, id],
+        })),
 
-            pomodoroState: {
-                isRunning: false,
-                startedAt: null,
-                pausedRemaining: null,
-                sessionsCompleted: 0,
-                focusDuration: 25 * 60,
-                shortBreakDuration: 5 * 60,
-                longBreakDuration: 15 * 60,
-                mode: 'work'
-            },
-            updatePomodoro: (newState) => set((state) => ({
-                pomodoroState: { ...state.pomodoroState, ...newState }
-            })),
+      recentPageIds: [],
 
-            isFocusMode: false,
-            toggleFocusMode: () => set((state) => ({ isFocusMode: !state.isFocusMode })),
+      isQuickSwitcherOpen: false,
+      openQuickSwitcher: () => set({ isQuickSwitcherOpen: true }),
+      closeQuickSwitcher: () => set({ isQuickSwitcherOpen: false }),
 
-            sidebarWidth: 288,
-            setSidebarWidth: (width) => set({ sidebarWidth: width }),
-
-            isCalendarModalOpen: false,
-            toggleCalendarModal: () => set(state => ({ isCalendarModalOpen: !state.isCalendarModalOpen })),
-            calendarSelectedDate: new Date().toISOString().split('T')[0],
-            setCalendarSelectedDate: (date) => set({ calendarSelectedDate: date }),
-            calendarTodosByDate: {},
-            updateCalendarTodos: (date, todos) => set((state) => ({
-                calendarTodosByDate: { ...state.calendarTodosByDate, [date]: todos }
-            })),
-
-            fetchPages: async () => {
-                set({ isLoading: true });
-                try {
-                    await dbService.init();
-                    const notesMetadata = await dbService.getNotesMetadata();
-                    set({
-                        pages: notesMetadata,
-                        isLoading: false
-                    });
-                } catch (e) {
-                    console.error("[Store] Failed to fetch pages:", e);
-                    set({ isLoading: false });
-                }
-            },
-
-            addPage: async () => {
-                const newId = crypto.randomUUID();
-                const now = Date.now();
-                const newPage: PageMetadata = {
-                    id: newId,
-                    title: '',
-                    parent_id: null,
-                    type: 'page',
-                    is_deleted: false,
-                    updated_at: now,
-                    created_at: now
-                };
-
-                set((state) => ({
-                    pages: [newPage, ...state.pages],
-                    activePageId: newId
-                }));
-
-                try {
-                    await dbService.createNote(newPage);
-                } catch (e) {
-                    console.error("Failed to create page in DB", e);
-                    set((state) => ({
-                        pages: state.pages.filter(p => p.id !== newId),
-                        activePageId: state.pages.length > 0 ? state.pages[0].id : null
-                    }));
-                }
-            },
-
-            addSubpage: async (parentId: string): Promise<string> => {
-                const newId = crypto.randomUUID();
-                const now = Date.now();
-                const newPage: PageMetadata = {
-                    id: newId,
-                    title: 'Untitled Subpage',
-                    icon: 'file',
-                    parent_id: parentId,
-                    type: 'page',
-                    is_deleted: false,
-                    updated_at: now,
-                    created_at: now
-                };
-
-                set((state) => ({
-                    pages: [...state.pages, newPage],
-                }));
-
-                try {
-                    await dbService.createNote(newPage);
-                } catch (e) {
-                    console.error("Failed to create subpage in DB", e);
-                    set((state) => ({
-                        pages: state.pages.filter(p => p.id !== newId)
-                    }));
-                }
-
-                return newId;
-            },
-
-            removePage: async (id) => {
-                debouncedSaveContent.flush();
-
-                const getAllDescendants = (pageId: string, allPages: PageMetadata[]): string[] => {
-                    const children = allPages.filter(p => p.parent_id === pageId);
-                    let descendants: string[] = [];
-                    for (const child of children) {
-                        descendants.push(child.id);
-                        descendants = descendants.concat(getAllDescendants(child.id, allPages));
-                    }
-                    return descendants;
-                };
-
-                const currentPages = get().pages;
-                const toDelete = [id, ...getAllDescendants(id, currentPages)];
-                const previousPages = [...currentPages];
-                const previousActiveId = get().activePageId;
-
-                set((state) => {
-                    const newPages = state.pages.filter(p => !toDelete.includes(p.id));
-                    let newActiveId = state.activePageId;
-                    if (toDelete.includes(state.activePageId || '')) {
-                        newActiveId = newPages.length > 0 ? newPages[0].id : null;
-                    }
-                    return { pages: newPages, activePageId: newActiveId };
-                });
-
-                try {
-                    await dbService.deleteNotesBatch(toDelete);
-                } catch (e) {
-                    console.error("Failed to delete pages in DB, rolling back", e);
-                    set({ pages: previousPages, activePageId: previousActiveId });
-                }
-            },
-
-            setActivePage: (id) => {
-                debouncedSaveContent.flush();
-                set({ activePageId: id });
-            },
-
-            updatePageTitle: (id, title) => {
-                set(state => ({
-                    pages: state.pages.map(p => p.id === id ? { ...p, title, updated_at: Date.now() } : p)
-                }));
-                dbService.updateNoteTitle(id, title).catch(e => {
-                    console.error("Failed to save title:", e);
-                });
-            },
-
-            updatePageIcon: (id, icon) => {
-                set(state => ({
-                    pages: state.pages.map(p => p.id === id ? { ...p, icon, updated_at: Date.now() } : p)
-                }));
-                dbService.updateNoteIcon(id, icon).catch(e => {
-                    console.error("Failed to save icon:", e);
-                });
-            },
-
-            updatePageContent: (id, content) => {
-                debouncedSaveContent(id, content, get().setSaveStatus);
-            },
-
-            deletionCandidateId: null,
-            setDeletionCandidateId: (id) => set({ deletionCandidateId: id }),
-        }),
-        {
-            name: 'notnip-storage',
-            partialize: (state) => ({
-                themePreferences: state.themePreferences,
-                panels: state.panels,
-                quickNotes: state.quickNotes || [],
-                pomodoroState: state.pomodoroState,
-                calendarTodosByDate: state.calendarTodosByDate,
-                sidebarWidth: state.sidebarWidth,
-            }),
+      openOrCreateDailyNote: async () => {
+        const today = new Date().toISOString().slice(0, 10);
+        const title = `Daily / ${today}`;
+        const existing = get().pages.find(
+          (p) => p.title === title && !p.is_deleted,
+        );
+        if (existing) {
+          get().setActivePage(existing.id);
+          return;
         }
-    )
+        const newId = crypto.randomUUID();
+        const now = Date.now();
+        const newPage: PageMetadata = {
+          id: newId,
+          title,
+          icon: "calendar",
+          parent_id: null,
+          type: "page",
+          is_deleted: false,
+          updated_at: now,
+          created_at: now,
+        };
+        set((state) => ({
+          pages: [newPage, ...state.pages],
+          activePageId: newId,
+        }));
+        try {
+          await dbService.createNote(newPage);
+        } catch (e) {
+          console.error("Failed to create daily note", e);
+          set((state) => ({
+            pages: state.pages.filter((p) => p.id !== newId),
+            activePageId: state.pages.length > 0 ? state.pages[0].id : null,
+          }));
+        }
+      },
+
+      panels: [],
+      openPanel: (type) =>
+        set((state) => {
+          if (state.panels.find((p) => p.type === type)) return state;
+          return {
+            panels: [
+              ...state.panels,
+              {
+                id: crypto.randomUUID(),
+                type,
+                position: {
+                  x: 100 + state.panels.length * 30,
+                  y: 100 + state.panels.length * 30,
+                },
+              },
+            ],
+          };
+        }),
+      closePanel: (id) =>
+        set((state) => ({
+          panels: state.panels.filter((p) => p.id !== id),
+        })),
+      updatePanelPosition: (id, position) =>
+        set((state) => ({
+          panels: state.panels.map((p) =>
+            p.id === id ? { ...p, position } : p,
+          ),
+        })),
+
+      quickNotes: [],
+      addQuickNote: (text) =>
+        set((state) => ({
+          quickNotes: [
+            { id: crypto.randomUUID(), text, createdAt: Date.now() },
+            ...(state.quickNotes || []),
+          ],
+        })),
+      removeQuickNote: (id) =>
+        set((state) => ({
+          quickNotes: (state.quickNotes || []).filter((n) => n.id !== id),
+        })),
+      updateQuickNoteText: (id, text) =>
+        set((state) => ({
+          quickNotes: (state.quickNotes || []).map((n) =>
+            n.id === id ? { ...n, text } : n,
+          ),
+        })),
+
+      pomodoroState: {
+        isRunning: false,
+        startedAt: null,
+        pausedRemaining: null,
+        sessionsCompleted: 0,
+        focusDuration: 25 * 60,
+        shortBreakDuration: 5 * 60,
+        longBreakDuration: 15 * 60,
+        mode: "work",
+      },
+      updatePomodoro: (newState) =>
+        set((state) => ({
+          pomodoroState: { ...state.pomodoroState, ...newState },
+        })),
+
+      isFocusMode: false,
+      toggleFocusMode: () =>
+        set((state) => ({ isFocusMode: !state.isFocusMode })),
+
+      sidebarWidth: 288,
+      setSidebarWidth: (width) => set({ sidebarWidth: width }),
+
+      isCalendarModalOpen: false,
+      toggleCalendarModal: () =>
+        set((state) => ({ isCalendarModalOpen: !state.isCalendarModalOpen })),
+      calendarSelectedDate: new Date().toISOString().split("T")[0],
+      setCalendarSelectedDate: (date) => set({ calendarSelectedDate: date }),
+      calendarTodosByDate: {},
+      updateCalendarTodos: (date, todos) =>
+        set((state) => ({
+          calendarTodosByDate: { ...state.calendarTodosByDate, [date]: todos },
+        })),
+
+      fetchPages: async () => {
+        set({ isLoading: true });
+        try {
+          await dbService.init();
+          const notesMetadata = await dbService.getNotesMetadata();
+          set({
+            pages: notesMetadata,
+            isLoading: false,
+          });
+        } catch (e) {
+          console.error("[Store] Failed to fetch pages:", e);
+          set({ isLoading: false });
+        }
+      },
+
+      addPage: async () => {
+        const newId = crypto.randomUUID();
+        const now = Date.now();
+        const newPage: PageMetadata = {
+          id: newId,
+          title: "",
+          parent_id: null,
+          type: "page",
+          is_deleted: false,
+          updated_at: now,
+          created_at: now,
+        };
+
+        set((state) => ({
+          pages: [newPage, ...state.pages],
+          activePageId: newId,
+        }));
+
+        try {
+          await dbService.createNote(newPage);
+        } catch (e) {
+          console.error("Failed to create page in DB", e);
+          set((state) => ({
+            pages: state.pages.filter((p) => p.id !== newId),
+            activePageId: state.pages.length > 0 ? state.pages[0].id : null,
+          }));
+        }
+      },
+
+      addSubpage: async (parentId: string): Promise<string> => {
+        const newId = crypto.randomUUID();
+        const now = Date.now();
+        const newPage: PageMetadata = {
+          id: newId,
+          title: "Untitled Subpage",
+          icon: "file",
+          parent_id: parentId,
+          type: "page",
+          is_deleted: false,
+          updated_at: now,
+          created_at: now,
+        };
+
+        set((state) => ({
+          pages: [...state.pages, newPage],
+        }));
+
+        try {
+          await dbService.createNote(newPage);
+        } catch (e) {
+          console.error("Failed to create subpage in DB", e);
+          set((state) => ({
+            pages: state.pages.filter((p) => p.id !== newId),
+          }));
+        }
+
+        return newId;
+      },
+
+      removePage: async (id) => {
+        debouncedSaveContent.flush();
+
+        const getAllDescendants = (
+          pageId: string,
+          allPages: PageMetadata[],
+        ): string[] => {
+          const children = allPages.filter((p) => p.parent_id === pageId);
+          let descendants: string[] = [];
+          for (const child of children) {
+            descendants.push(child.id);
+            descendants = descendants.concat(
+              getAllDescendants(child.id, allPages),
+            );
+          }
+          return descendants;
+        };
+
+        const currentPages = get().pages;
+        const toDelete = [id, ...getAllDescendants(id, currentPages)];
+        const previousPages = [...currentPages];
+        const previousActiveId = get().activePageId;
+
+        set((state) => {
+          const newPages = state.pages.filter((p) => !toDelete.includes(p.id));
+          let newActiveId = state.activePageId;
+          if (toDelete.includes(state.activePageId || "")) {
+            newActiveId = newPages.length > 0 ? newPages[0].id : null;
+          }
+          return {
+            pages: newPages,
+            activePageId: newActiveId,
+            favoritePageIds: state.favoritePageIds.filter(
+              (id) => !toDelete.includes(id),
+            ),
+            recentPageIds: state.recentPageIds.filter(
+              (id) => !toDelete.includes(id),
+            ),
+          };
+        });
+
+        try {
+          await dbService.deleteNotesBatch(toDelete);
+        } catch (e) {
+          console.error("Failed to delete pages in DB, rolling back", e);
+          set({ pages: previousPages, activePageId: previousActiveId });
+        }
+      },
+
+      setActivePage: (id) => {
+        debouncedSaveContent.flush();
+        set((state) => {
+          const recent = [
+            id,
+            ...state.recentPageIds.filter((r) => r !== id),
+          ].slice(0, 20);
+          return { activePageId: id, recentPageIds: recent };
+        });
+      },
+
+      closeActivePage: () => {
+        debouncedSaveContent.flush();
+        set({ activePageId: null });
+      },
+
+      updatePageTitle: (id, title) => {
+        set((state) => ({
+          pages: state.pages.map((p) =>
+            p.id === id ? { ...p, title, updated_at: Date.now() } : p,
+          ),
+        }));
+        dbService.updateNoteTitle(id, title).catch((e) => {
+          console.error("Failed to save title:", e);
+        });
+      },
+
+      updatePageIcon: (id, icon) => {
+        set((state) => ({
+          pages: state.pages.map((p) =>
+            p.id === id ? { ...p, icon, updated_at: Date.now() } : p,
+          ),
+        }));
+        dbService.updateNoteIcon(id, icon).catch((e) => {
+          console.error("Failed to save icon:", e);
+        });
+      },
+
+      updatePageContent: (id, content) => {
+        debouncedSaveContent(id, content, get().setSaveStatus);
+      },
+
+      deletionCandidateId: null,
+      setDeletionCandidateId: (id) => set({ deletionCandidateId: id }),
+    }),
+    {
+      name: "notnip-storage",
+      partialize: (state) => ({
+        themePreferences: state.themePreferences,
+        panels: state.panels,
+        quickNotes: state.quickNotes || [],
+        pomodoroState: state.pomodoroState,
+        calendarTodosByDate: state.calendarTodosByDate,
+        sidebarWidth: state.sidebarWidth,
+        editorAppearance: state.editorAppearance,
+        favoritePageIds: state.favoritePageIds,
+        recentPageIds: state.recentPageIds,
+      }),
+    },
+  ),
 );
