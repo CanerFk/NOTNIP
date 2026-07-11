@@ -15,7 +15,6 @@ export function TableBlockView(props: NodeViewProps) {
         updateAttributes({ isMinimized: !isMinimized });
     };
 
-    // Table operations (dispatch natively to Tiptap)
     const withLastCellFocus = (commandName: 'addRowAfter' | 'addColumnAfter' | 'deleteRow' | 'deleteColumn') => {
         const posWrapper = typeof props.getPos === 'function' ? props.getPos() : -1;
         const pos = posWrapper ?? -1;
@@ -25,7 +24,6 @@ export function TableBlockView(props: NodeViewProps) {
         const tableNode = node.firstChild;
         if (!tableNode || tableNode.type.name !== 'table') return;
 
-        // Prevent deleting last row/col
         if (commandName === 'deleteRow' && tableNode.childCount <= 1) return;
         if (commandName === 'deleteColumn' && tableNode.firstChild && tableNode.firstChild.childCount <= 1) return;
 

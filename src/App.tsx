@@ -2,6 +2,7 @@ import { useEffect, useCallback } from "react";
 import { Layout } from "./components/layout/Layout";
 import { Editor } from "./components/editor/Editor";
 import { useStore } from "./store/useStore";
+import { ConfirmDeleteModal } from "./components/modals/ConfirmDeleteModal";
 
 function isNonEditorInputTarget(target: EventTarget | null) {
   if (!(target instanceof HTMLElement)) return false;
@@ -46,7 +47,9 @@ function App() {
 
   useEffect(() => {
     fetchPages();
+  }, [fetchPages]);
 
+  useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       const mod = e.ctrlKey || e.metaKey;
       if (!mod) return;
@@ -102,7 +105,6 @@ function App() {
 
     const handleWheel = (e: WheelEvent) => {
       if (!(e.ctrlKey || e.metaKey)) return;
-      // Only zoom when the wheel event originates inside the editor scroll area
       const target = e.target as HTMLElement | null;
       if (!target?.closest('[data-editor-scroll="true"]')) return;
       e.preventDefault();
@@ -140,7 +142,72 @@ function App() {
   }
 
   return (
-    <Layout>{(setWordCount) => <Editor setWordCount={setWordCount} />}</Layout>
+    <>
+      <Layout>{(setWordCount) => <Editor setWordCount={setWordCount} />}</Layout>
+      <GlobalDeleteHandler />
+    </>
+  );
+}
+
+function GlobalDeleteHandler() {
+  const deletionCandidateId = useStore((state) => state.deletionCandidateId);
+  const deletionCandidateCleanup = useStore(
+    (state) => state.deletionCandidateCleanup,
+  );
+  const setDeletionCandidateId = useStore(
+    (state) => state.setDeletionCandidateId,
+  );
+  const removePage = useStore((state) => state.removePage);
+  const pages = useStore((state) => state.pages);
+
+  const page = deletionCandidateId
+    ? pages.find((p) => p.id === deletionCandidateId)
+    : null;
+
+  if (!deletionCandidateId || !page) return null;
+
+  const childrenByParent = new Map<string, string[]>();
+  for (const currentPage of pages) {
+    if (!currentPage.parent_id) continue;
+    const siblings = childrenByParent.get(currentPage.parent_id);
+    if (siblings) siblings.push(currentPage.id);
+    else childrenByParent.set(currentPage.parent_id, [currentPage.id]);
+  }
+
+  let count = 0;
+  const stack = [...(childrenByParent.get(page.id) || [])];
+  while (stack.length > 0) {
+    const childId = stack.pop();
+    if (!childId) continue;
+    count += 1;
+    const children = childrenByParent.get(childId);
+    if (children) stack.push(...children);
+  }
+
+  return (
+    <ConfirmDeleteModal
+      isOpen={true}
+      title="DELETE PAGE"
+      message={`Delete "${page.title || "Untitled"}"${count > 0 ? ` and its ${count} nested subpage${count === 1 ? "" : "s"}` : ""}?${count > 0 ? " All descendants will also be permanently deleted. This cannot be undone." : " This cannot be undone."}`}
+      onConfirm={async () => {
+        const pageId = page.id;
+        const cleanup = deletionCandidateCleanup;
+        
+        setDeletionCandidateId(null);
+
+        try {
+          const deleted = await removePage(pageId);
+          if (deleted && cleanup) cleanup();
+          if (!deleted) {
+             setDeletionCandidateId(pageId, cleanup);
+          }
+        } catch (error) {
+          console.error("Failed to delete page", error);
+          setDeletionCandidateId(pageId, cleanup);
+        }
+      }}
+      onCancel={() => setDeletionCandidateId(null)}
+    />
   );
 }
 

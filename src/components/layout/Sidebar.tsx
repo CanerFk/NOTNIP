@@ -17,45 +17,44 @@ import {
 } from "lucide-react";
 import { cn } from "../../lib/utils";
 import { useTheme } from "../../hooks/useTheme";
-import { PageMetadata, useStore } from "../../store/useStore";
-import { useState, useMemo, useEffect } from "react";
+import { getPageIndex, PageMetadata, useStore } from "../../store/useStore";
+import { useState, useMemo, useEffect, useRef } from "react";
 import { renderIcon } from "../ui/IconPicker";
 
 export function Sidebar() {
   const { theme, toggleTheme } = useTheme();
 
-  // Performance: Select properties individually to avoid re-renders on unrelated changes (e.g. wordCount)
   const pages = useStore((state) => state.pages);
   const activePageId = useStore((state) => state.activePageId);
   const isFocusMode = useStore((state) => state.isFocusMode);
-
-  // Actions are stable, but good to be explicit or group them if needed
   const addPage = useStore((state) => state.addPage);
   const setActivePage = useStore((state) => state.setActivePage);
   const toggleSettings = useStore((state) => state.toggleSettings);
   const openPanel = useStore((state) => state.openPanel);
   const toggleFocusMode = useStore((state) => state.toggleFocusMode);
   const openQuickSwitcher = useStore((state) => state.openQuickSwitcher);
-  const openOrCreateDailyNote = useStore(
-    (state) => state.openOrCreateDailyNote,
-  );
   const favoritePageIds = useStore((state) => state.favoritePageIds);
   const recentPageIds = useStore((state) => state.recentPageIds);
   const toggleFavorite = useStore((state) => state.toggleFavorite);
   const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
   const [searchQuery, setSearchQuery] = useState("");
   const [isSearchOpen, setIsSearchOpen] = useState(false);
+  const [isFavoritesOpen, setIsFavoritesOpen] = useState(true);
+  const [isRecentOpen, setIsRecentOpen] = useState(true);
+  const navigationRef = useRef<HTMLElement>(null);
 
-  const { rootPages, childrenMap, _expandedIdsFromSearch, bestMatchId } =
+  const {
+    rootPages,
+    childrenMap,
+    pageById,
+    _expandedIdsFromSearch,
+    bestMatchId,
+  } =
     useMemo(() => {
       const childrenMap = new Map<string, PageMetadata[]>();
       const rootPages: PageMetadata[] = [];
       const lowerQuery = searchQuery.toLowerCase().trim();
-
-      const parentMap = new Map<string, string>();
-      pages.forEach((p) => {
-        if (p.parent_id) parentMap.set(p.id, p.parent_id);
-      });
+      const pageById = getPageIndex(pages);
 
       const matchedIds = new Set<string>();
       const forcedExpanded = new Set<string>();
@@ -71,7 +70,7 @@ export function Sidebar() {
             while (currParent) {
               matchedIds.add(currParent);
               forcedExpanded.add(currParent);
-              currParent = parentMap.get(currParent) || null;
+              currParent = pageById.get(currParent)?.parent_id || null;
             }
           }
         });
@@ -106,6 +105,7 @@ export function Sidebar() {
       return {
         rootPages,
         childrenMap,
+        pageById,
         _expandedIdsFromSearch: forcedExpanded,
         bestMatchId,
       };
@@ -126,7 +126,6 @@ export function Sidebar() {
     });
   };
 
-  // Helper to render icons dynamically
   const getIcon = (iconName?: string, size = 16) => {
     return renderIcon(iconName || "file", size);
   };
@@ -194,8 +193,8 @@ export function Sidebar() {
             className={cn(
               "opacity-0 group-hover:opacity-100 p-1 transition-opacity flex-shrink-0",
               favoritePageIds.includes(page.id)
-                ? "opacity-100 text-yellow-400"
-                : "text-muted hover:text-yellow-400",
+                ? "opacity-100 text-[var(--favorite-star-color)]"
+                : "text-muted hover:text-[var(--favorite-star-color)]",
             )}
             title={
               favoritePageIds.includes(page.id)
@@ -253,17 +252,16 @@ export function Sidebar() {
       </div>
 
       {/* Navigation */}
-      <nav className="flex-1 overflow-y-auto px-4 pt-6 space-y-10 custom-scrollbar">
+      <nav
+        ref={navigationRef}
+        className="flex-1 overflow-y-auto px-4 pt-6 space-y-10 custom-scrollbar"
+      >
         <div>
           <h3 className="text-xs text-muted mb-4 px-2 uppercase tracking-widest font-bold opacity-70">
             Menu
           </h3>
           <div className="space-y-3">
-            <SidebarItem
-              icon={<Zap size={18} />}
-              label="QUICK SWITCH"
-              onClick={openQuickSwitcher}
-            />
+            
             <SidebarItem
               icon={<Search size={18} />}
               label="SEARCH"
@@ -305,11 +303,6 @@ export function Sidebar() {
               </div>
             )}
             <SidebarItem
-              icon={<Calendar size={18} />}
-              label="DAILY NOTE"
-              onClick={openOrCreateDailyNote}
-            />
-            <SidebarItem
               icon={<Settings size={18} />}
               label="SETTINGS"
               onClick={toggleSettings}
@@ -319,6 +312,11 @@ export function Sidebar() {
               label="FOCUS MODE"
               active={isFocusMode}
               onClick={toggleFocusMode}
+            />
+            <SidebarItem
+              icon={<Zap size={18} />}
+              label="QUICK SWITCH"
+              onClick={openQuickSwitcher}
             />
           </div>
         </div>
@@ -350,52 +348,71 @@ export function Sidebar() {
         {/* Favorites */}
         {favoritePageIds.length > 0 &&
           (() => {
-            const favPages = favoritePageIds
-              .map((id) => pages.find((p) => p.id === id && !p.is_deleted))
-              .filter(Boolean) as PageMetadata[];
+            const favPages = (favoritePageIds
+              .map((id) => pageById.get(id))
+              .filter((page) => page && !page.is_deleted)) as PageMetadata[];
             if (favPages.length === 0) return null;
             return (
               <div>
-                <h3 className="text-xs text-muted mb-3 px-2 uppercase tracking-widest font-bold opacity-70 flex items-center gap-1.5">
+                <button
+                  type="button"
+                  onClick={() => setIsFavoritesOpen((open) => !open)}
+                  className="w-full text-xs text-muted mb-3 px-2 uppercase tracking-widest font-bold opacity-70 hover:opacity-100 hover:text-main transition-colors flex items-center gap-1.5"
+                >
+                  {isFavoritesOpen ? (
+                    <ChevronDown size={11} />
+                  ) : (
+                    <ChevronRight size={11} />
+                  )}
                   <Star size={10} /> Favorites
-                </h3>
-                <div className="space-y-0.5">
-                  {favPages.map((p) => (
-                    <div key={p.id} className="group flex items-center">
-                      <button
-                        onClick={() => setActivePage(p.id)}
-                        className={cn(
-                          "flex items-center gap-2 flex-1 px-2 py-1.5 transition-all border-none text-left text-sm min-w-0",
-                          activePageId === p.id
-                            ? "bg-element/80 text-main font-bold"
-                            : "text-muted hover:text-main hover:bg-element/50",
-                        )}
-                      >
-                        <span
+                </button>
+                <div
+                  aria-hidden={!isFavoritesOpen}
+                  className={cn(
+                    "grid transition-[grid-template-rows,opacity] duration-200 ease-out",
+                    isFavoritesOpen
+                      ? "grid-rows-[1fr] opacity-100"
+                      : "grid-rows-[0fr] opacity-0 pointer-events-none",
+                  )}
+                >
+                  <div className="space-y-0.5 overflow-hidden">
+                    {favPages.map((p) => (
+                      <div key={p.id} className="group flex items-center">
+                        <button
+                          onClick={() => setActivePage(p.id)}
                           className={cn(
-                            "flex-shrink-0 transition-colors",
-                            activePageId === p.id &&
-                              "text-[var(--active-icon-color)]",
+                            "flex items-center gap-2 flex-1 px-2 py-1.5 transition-all border-none text-left text-sm min-w-0",
+                            activePageId === p.id
+                              ? "bg-element/80 text-main font-bold"
+                              : "text-muted hover:text-main hover:bg-element/50",
                           )}
                         >
-                          {renderIcon(p.icon || "file", 14)}
-                        </span>
-                        <span className="truncate text-xs">
-                          {p.title || "Untitled"}
-                        </span>
-                      </button>
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          toggleFavorite(p.id);
-                        }}
-                        className="opacity-0 group-hover:opacity-100 p-1 text-yellow-400 transition-opacity flex-shrink-0"
-                        title="Remove from favorites"
-                      >
-                        <Star size={10} fill="currentColor" />
-                      </button>
-                    </div>
-                  ))}
+                          <span
+                            className={cn(
+                              "flex-shrink-0 transition-colors",
+                              activePageId === p.id &&
+                                "text-[var(--active-icon-color)]",
+                            )}
+                          >
+                            {renderIcon(p.icon || "file", 14)}
+                          </span>
+                          <span className="truncate text-xs">
+                            {p.title || "Untitled"}
+                          </span>
+                        </button>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            toggleFavorite(p.id);
+                          }}
+                          className="opacity-0 group-hover:opacity-100 p-1 text-[var(--favorite-star-color)] transition-opacity flex-shrink-0"
+                          title="Remove from favorites"
+                        >
+                          <Star size={10} fill="currentColor" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               </div>
             );
@@ -405,62 +422,81 @@ export function Sidebar() {
         {recentPageIds.length > 0 &&
           (() => {
             const recPages = recentPageIds
-              .map((id) => pages.find((p) => p.id === id && !p.is_deleted))
-              .filter(Boolean)
+              .map((id) => pageById.get(id))
+              .filter((page) => page && !page.is_deleted)
               .slice(0, 5) as PageMetadata[];
             if (recPages.length === 0) return null;
             return (
               <div>
-                <h3 className="text-xs text-muted mb-3 px-2 uppercase tracking-widest font-bold opacity-70 flex items-center gap-1.5">
+                <button
+                  type="button"
+                  onClick={() => setIsRecentOpen((open) => !open)}
+                  className="w-full text-xs text-muted mb-3 px-2 uppercase tracking-widest font-bold opacity-70 hover:opacity-100 hover:text-main transition-colors flex items-center gap-1.5"
+                >
+                  {isRecentOpen ? (
+                    <ChevronDown size={11} />
+                  ) : (
+                    <ChevronRight size={11} />
+                  )}
                   <Clock size={10} /> Recent
-                </h3>
-                <div className="space-y-0.5">
-                  {recPages.map((p) => (
-                    <div key={p.id} className="group flex items-center">
-                      <button
-                        onClick={() => setActivePage(p.id)}
-                        className={cn(
-                          "flex items-center gap-2 flex-1 px-2 py-1.5 transition-all border-none text-left text-sm min-w-0",
-                          activePageId === p.id
-                            ? "bg-element/80 text-main font-bold"
-                            : "text-muted hover:text-main hover:bg-element/50",
-                        )}
-                      >
-                        <span className="flex-shrink-0 text-muted/60">
-                          {renderIcon(p.icon || "file", 14)}
-                        </span>
-                        <span className="truncate text-xs">
-                          {p.title || "Untitled"}
-                        </span>
-                      </button>
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          toggleFavorite(p.id);
-                        }}
-                        className={cn(
-                          "opacity-0 group-hover:opacity-100 p-1 transition-opacity flex-shrink-0",
-                          favoritePageIds.includes(p.id)
-                            ? "text-yellow-400"
-                            : "text-muted",
-                        )}
-                        title={
-                          favoritePageIds.includes(p.id)
-                            ? "Remove from favorites"
-                            : "Add to favorites"
-                        }
-                      >
-                        <Star
-                          size={10}
-                          fill={
+                </button>
+                <div
+                  aria-hidden={!isRecentOpen}
+                  className={cn(
+                    "grid transition-[grid-template-rows,opacity] duration-200 ease-out",
+                    isRecentOpen
+                      ? "grid-rows-[1fr] opacity-100"
+                      : "grid-rows-[0fr] opacity-0 pointer-events-none",
+                  )}
+                >
+                  <div className="space-y-0.5 overflow-hidden">
+                    {recPages.map((p) => (
+                      <div key={p.id} className="group flex items-center">
+                        <button
+                          onClick={() => setActivePage(p.id)}
+                          className={cn(
+                            "flex items-center gap-2 flex-1 px-2 py-1.5 transition-all border-none text-left text-sm min-w-0",
+                            activePageId === p.id
+                              ? "bg-element/80 text-main font-bold"
+                              : "text-muted hover:text-main hover:bg-element/50",
+                          )}
+                        >
+                          <span className="flex-shrink-0 text-muted/60">
+                            {renderIcon(p.icon || "file", 14)}
+                          </span>
+                          <span className="truncate text-xs">
+                            {p.title || "Untitled"}
+                          </span>
+                        </button>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            toggleFavorite(p.id);
+                          }}
+                          className={cn(
+                            "opacity-0 group-hover:opacity-100 p-1 transition-opacity flex-shrink-0 hover:text-[var(--favorite-star-color)]",
                             favoritePageIds.includes(p.id)
-                              ? "currentColor"
-                              : "none"
+                              ? "text-[var(--favorite-star-color)]"
+                              : "text-muted",
+                          )}
+                          title={
+                            favoritePageIds.includes(p.id)
+                              ? "Remove from favorites"
+                              : "Add to favorites"
                           }
-                        />
-                      </button>
-                    </div>
-                  ))}
+                        >
+                          <Star
+                            size={10}
+                            fill={
+                              favoritePageIds.includes(p.id)
+                                ? "currentColor"
+                                : "none"
+                            }
+                          />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               </div>
             );
@@ -479,7 +515,7 @@ export function Sidebar() {
       {/* Footer / Theme Toggle */}
       <div className="p-4 border-t border-border flex items-center justify-between bg-background/30">
         <div className="flex items-center gap-3">
-          <div className="text-xs text-muted opacity-50">v0.6.1 BETA</div>
+          <div className="text-xs text-muted opacity-50">v0.6.2 BETA</div>
           <SaveStatusIndicator />
         </div>
         <button

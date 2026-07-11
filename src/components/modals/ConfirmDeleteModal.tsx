@@ -6,7 +6,7 @@ interface ConfirmDeleteModalProps {
   isOpen: boolean;
   title: string;
   message: string;
-  onConfirm: () => void;
+  onConfirm: () => void | Promise<void>;
   onCancel: () => void;
 }
 
@@ -17,11 +17,14 @@ export function ConfirmDeleteModal({
   onConfirm,
   onCancel,
 }: ConfirmDeleteModalProps) {
-  const [isClosing, setIsClosing] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const isSubmittingRef = useRef(false);
   const cancelBtnRef = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
     if (isOpen) {
+      isSubmittingRef.current = false;
+      setIsSubmitting(false);
       cancelBtnRef.current?.focus();
     }
   }, [isOpen]);
@@ -29,25 +32,34 @@ export function ConfirmDeleteModal({
   if (!isOpen) return null;
 
   const handleCancel = () => {
-    setIsClosing(true);
-    setTimeout(() => {
-      setIsClosing(false);
-      onCancel();
-    }, 200);
+    if (isSubmittingRef.current) return;
+    onCancel();
   };
 
   const handleConfirm = () => {
-    setIsClosing(true);
-    setTimeout(() => {
-      setIsClosing(false);
-      onConfirm();
-    }, 200);
+    if (isSubmittingRef.current) return;
+    isSubmittingRef.current = true;
+    setIsSubmitting(true);
+    void (async () => {
+      try {
+        await onConfirm();
+      } catch {
+        isSubmittingRef.current = false;
+        setIsSubmitting(false);
+      }
+    })();
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === "Escape") {
       e.preventDefault();
       handleCancel();
+      return;
+    }
+
+    if (e.key === "Enter") {
+      e.preventDefault();
+      handleConfirm();
     }
   };
 
@@ -59,8 +71,9 @@ export function ConfirmDeleteModal({
       <div
         className={cn(
           "w-[360px] bg-background border-2 border-border shadow-retro flex flex-col",
-          isClosing ? "animate-retro-shutter-close" : "animate-retro-shutter",
+          "animate-retro-shutter",
         )}
+        aria-busy={isSubmitting}
       >
         {/* Titlebar */}
         <div className="h-7 bg-element flex items-center justify-between px-2 border-b border-border select-none">
@@ -70,7 +83,8 @@ export function ConfirmDeleteModal({
           <button
             type="button"
             onClick={handleCancel}
-            className="w-5 h-5 flex items-center justify-center border-l border-border bg-element hover:bg-red-500 hover:text-white transition-all"
+            disabled={isSubmitting}
+            className="w-5 h-5 flex items-center justify-center border-l border-border bg-element hover:bg-red-500 hover:text-white transition-all disabled:cursor-not-allowed disabled:opacity-50"
           >
             <X size={14} />
           </button>
@@ -92,16 +106,18 @@ export function ConfirmDeleteModal({
             type="button"
             ref={cancelBtnRef}
             onClick={handleCancel}
-            className="px-4 py-1.5 text-xs font-mono font-bold bg-element border border-border hover:bg-muted transition-colors focus:outline focus:outline-2 focus:outline-accent"
+            disabled={isSubmitting}
+            className="px-4 py-1.5 text-xs font-mono font-bold bg-element border border-border hover:bg-muted transition-colors focus:outline focus:outline-2 focus:outline-accent disabled:cursor-not-allowed disabled:opacity-50"
           >
             CANCEL
           </button>
           <button
             type="button"
             onClick={handleConfirm}
-            className="px-4 py-1.5 text-xs font-mono font-bold bg-red-600 text-white border border-red-700 hover:bg-red-700 transition-colors"
+            disabled={isSubmitting}
+            className="px-4 py-1.5 text-xs font-mono font-bold bg-red-600 text-white border border-red-700 hover:bg-red-700 transition-colors disabled:cursor-not-allowed disabled:opacity-50"
           >
-            DELETE
+            {isSubmitting ? "DELETING..." : "DELETE"}
           </button>
         </div>
       </div>

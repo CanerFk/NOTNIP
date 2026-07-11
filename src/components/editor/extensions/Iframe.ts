@@ -2,7 +2,6 @@ import { Node } from '@tiptap/core';
 import { ReactNodeViewRenderer } from '@tiptap/react';
 import { IframeView } from './IframeView';
 
-// Iframe extension for PDFs and embeds - Retro Window Style (No Gradients)
 export interface IframeOptions {
     allowFullscreen: boolean;
     HTMLAttributes: Record<string, any>;
@@ -24,8 +23,8 @@ export const Iframe = Node.create<IframeOptions>({
     atom: true,
 
     isolating: true,
-    selectable: false, // CRITICAL: Prevents cursor from selecting the node
-    draggable: false, // Prevent drag-and-drop
+    selectable: false,
+    draggable: false,
 
     addOptions() {
         return {

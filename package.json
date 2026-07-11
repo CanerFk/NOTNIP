@@ -1,7 +1,7 @@
 {
   "name": "notnip",
   "private": true,
-  "version": "0.6.1",
+  "version": "0.6.2",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -17,9 +17,11 @@
     "@tauri-apps/plugin-sql": "^2.3.1",
     "@tiptap/extension-blockquote": "^3.15.3",
     "@tiptap/extension-bold": "^3.15.3",
+    "@tiptap/extension-bubble-menu": "^3.15.3",
     "@tiptap/extension-bullet-list": "^3.15.3",
     "@tiptap/extension-code": "^3.27.1",
     "@tiptap/extension-code-block-lowlight": "^3.15.3",
+    "@tiptap/extension-color": "^3.15.3",
     "@tiptap/extension-document": "^3.15.3",
     "@tiptap/extension-gapcursor": "^3.27.1",
     "@tiptap/extension-hard-break": "^3.15.3",
@@ -41,6 +43,7 @@
     "@tiptap/extension-task-item": "^3.15.3",
     "@tiptap/extension-task-list": "^3.15.3",
     "@tiptap/extension-text": "^3.15.3",
+    "@tiptap/extension-text-style": "^3.15.3",
     "@tiptap/pm": "^3.15.3",
     "@tiptap/react": "^3.15.3",
     "@tiptap/suggestion": "^3.15.3",

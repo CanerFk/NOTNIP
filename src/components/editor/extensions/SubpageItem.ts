@@ -5,12 +5,12 @@ import { SubpageItemView } from "./SubpageItemView";
 export const SubpageItem = Node.create({
   name: "subpageItem",
 
-  group: "block", // Block level
-  inline: false, // Not inline
-  atom: true, // Treated as a single unit
-  isolating: true, // Prevents text from merging into it
-  selectable: false, // CRITICAL: Prevents cursor from selecting the node, which would cause typing to replace it
-  draggable: false, // Prevent drag-and-drop
+  group: "block",
+  inline: false,
+  atom: true, 
+  isolating: true,
+  selectable: false, 
+  draggable: false,
 
   addAttributes() {
     return {

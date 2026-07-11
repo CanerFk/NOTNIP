@@ -97,6 +97,7 @@ export const CommandList = forwardRef((props: any, ref) => {
 
     const supportsColor = itemFlags.some((f) => f.key === 'c' && f.label === 'Color');
     const isTypingColor = supportsColor && activeFlags.some((f) => f.startsWith('c'));
+    const displayTitle = (item: any) => item.title.replace(/^Template: /, '');
 
     const colorHints = [
         { key: 'cr', color: 'var(--gruv-red)', name: 'Red' },
@@ -116,10 +117,10 @@ export const CommandList = forwardRef((props: any, ref) => {
                 className="flex flex-col gap-0.5 p-1 w-72 bg-sidebar border-2 border-border shadow-retro rounded-none overflow-y-auto max-h-80 animate-in fade-in zoom-in-95 duration-100 z-50 custom-scrollbar pointer-events-auto"
             >
                 <div className="flex items-center justify-between px-2 py-1 border-b border-border/50 mb-0.5 sticky top-0 bg-sidebar z-10 select-none pointer-events-none">
-                    <span className="text-[10px] uppercase font-bold text-muted tracking-wider">Blocks</span>
+                    <span className="text-[10px] uppercase font-bold text-muted tracking-wider">Commands</span>
                     {currentItem && (
                         <span className="font-mono text-[10px] text-accent/60 tracking-wide truncate max-w-[140px]">
-                            /{currentItem.title.toLowerCase()}
+                            /{displayTitle(currentItem).toLowerCase()}
                             {activeFlags.length > 0 && (
                                 <span className="text-accent"> -{activeFlags.join(' -')}</span>
                             )}
@@ -129,31 +130,37 @@ export const CommandList = forwardRef((props: any, ref) => {
 
                 {props.items.length ? (
                     props.items.map((item: any, index: number) => (
-                        <button
-                            ref={(el) => { itemRefs.current[index] = el; }}
-                            className={cn(
-                                "flex items-center gap-2 px-2 py-1.5 text-sm text-left transition-colors font-mono w-full",
-                                index === selectedIndex
-                                    ? "bg-accent text-white shadow-retro-sm"
-                                    : "text-main hover:bg-element"
+                        <div key={`${item.group || 'Commands'}-${item.title}-${index}`}>
+                            {(index === 0 || props.items[index - 1]?.group !== item.group) && (
+                                <div className="px-2 pt-1.5 pb-0.5 text-[9px] uppercase font-bold text-muted/50 tracking-widest pointer-events-none">
+                                    {item.group || 'Commands'}
+                                </div>
                             )}
-                            key={index}
-                            onClick={() => selectItem(index)}
-                        >
-                            <div className={cn(
-                                "p-0.5 rounded-sm border border-transparent flex-shrink-0",
-                                index === selectedIndex ? "text-white" : "text-muted"
-                            )}>
-                                {item.icon}
-                            </div>
-                            <span className="flex-1 font-medium truncate">{item.title}</span>
-                            {index === selectedIndex && item.flags?.length > 0 && !hasFlags && (
-                                <span className="text-[9px] opacity-50 whitespace-nowrap">- flags</span>
-                            )}
-                            {index === selectedIndex && (
-                                <span className="text-[9px] opacity-60 uppercase tracking-wider flex-shrink-0">enter</span>
-                            )}
-                        </button>
+                            <button
+                                ref={(el) => { itemRefs.current[index] = el; }}
+                                className={cn(
+                                    "flex items-center gap-2 px-2 py-1.5 text-sm text-left transition-colors font-mono w-full",
+                                    index === selectedIndex
+                                        ? "bg-accent text-white shadow-retro-sm"
+                                        : "text-main hover:bg-element"
+                                )}
+                                onClick={() => selectItem(index)}
+                            >
+                                <div className={cn(
+                                    "p-0.5 rounded-sm border border-transparent flex-shrink-0",
+                                    index === selectedIndex ? "text-white" : "text-muted"
+                                )}>
+                                    {item.icon}
+                                </div>
+                                <span className="flex-1 font-medium truncate">{displayTitle(item)}</span>
+                                {index === selectedIndex && item.flags?.length > 0 && !hasFlags && (
+                                    <span className="text-[9px] opacity-50 whitespace-nowrap">- flags</span>
+                                )}
+                                {index === selectedIndex && (
+                                    <span className="text-[9px] opacity-60 uppercase tracking-wider flex-shrink-0">enter</span>
+                                )}
+                            </button>
+                        </div>
                     ))
                 ) : (
                     <div className="px-2 py-2 text-sm text-muted font-mono">No result</div>

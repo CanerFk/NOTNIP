@@ -94,9 +94,7 @@ function makeContentPortable(content: any, assetHashToFilename: Map<string, stri
         portable = portable.replace(regex, `notnip-asset://${filename}`);
     }
 
-    // Sanitize absolute local links (local-link:C:\...) into relative links for portability
     portable = portable.replace(/"src":"local-link:([^"]+)"/g, (_match, pathString) => {
-        // Handle escaped JSON backslashes safely
         const safePath = pathString.replace(/\\\\/g, '/').replace(/\\/g, '/');
         const filename = safePath.split('/').pop() || 'file';
         return `"src":"local-link:./${filename}"`;
@@ -270,7 +268,6 @@ export async function saveMarkdownToFile(pageId: string): Promise<string | null>
 
     const exportRootName = (rootPage.title || 'untitled').replace(/[^a-zA-Z0-9_\-\u00f6\u00d6\u00e7\u00c7\u015f\u015e\u0131\u0130\u011f\u011e\u00fc\u00dc]/g, '_').replace(/\s+/g, '_');
 
-    // Ask user for directory to output the folder
     const selectedDir = await open({
         directory: true,
         multiple: false,
@@ -281,12 +278,10 @@ export async function saveMarkdownToFile(pageId: string): Promise<string | null>
 
     const rootPath = await join(selectedDir as string, exportRootName);
 
-    // Create folders
     await mkdir(rootPath, { recursive: true });
     await mkdir(await join(rootPath, 'assets'), { recursive: true });
     await mkdir(await join(rootPath, 'subpages'), { recursive: true });
 
-    // Prepare Mappings for Assets
     const allAssetHashes = new Set<string>();
     for (const p of pages) {
         const hashes = extractAssetHashes(p.content);
@@ -311,12 +306,11 @@ export async function saveMarkdownToFile(pageId: string): Promise<string | null>
                 } catch (e) {
                     console.error("Failed to export physical asset:", e);
                 }
-                break; // Found the right extension, move to next hash
+                break; 
             }
         }
     }
 
-    // Prepare Mappings for Pages
     const pageMap = new Map<string, string>();
     const pageTitleMap = new Map<string, string>();
     for (const p of pages) {
@@ -332,14 +326,11 @@ export async function saveMarkdownToFile(pageId: string): Promise<string | null>
 
     const context: MarkdownExportContext = { assetMap, pageMap, pageTitleMap };
 
-    // Write all markdown files
     const encoder = new TextEncoder();
     for (const p of pages) {
         const isRoot = p.id === pageId;
         const currentContext = { ...context, isSubpage: !isRoot };
 
-        // Before generating markdown, inject the page title as an H1 for subpages
-        // Though they might already have an H1, let's keep it clean
         let md = jsonToMarkdown(p.content, currentContext);
         if (!isRoot) {
             md = `# ${p.title || 'Untitled'}\n\n${md}`;

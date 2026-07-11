@@ -1,14 +1,17 @@
 import { NodeViewWrapper, NodeViewProps } from "@tiptap/react";
-import { useStore } from "../../../store/useStore";
+import { getPageIndex, useStore } from "../../../store/useStore";
 import { Trash2, ArrowRight, Unlink } from "lucide-react";
 import { cn } from "../../../lib/utils";
 import { IconPicker } from "../../ui/IconPicker";
 
 export function SubpageItemView(props: NodeViewProps) {
   const { id } = props.node.attrs;
-  const page = useStore((state) => state.pages.find((p) => p.id === id));
+  const page = useStore((state) => getPageIndex(state.pages).get(id));
   const setActivePage = useStore((state) => state.setActivePage);
   const updatePageIcon = useStore((state) => state.updatePageIcon);
+  const setDeletionCandidateId = useStore(
+    (state) => state.setDeletionCandidateId,
+  );
 
   const iconType = page?.icon || "file";
 
@@ -25,6 +28,11 @@ export function SubpageItemView(props: NodeViewProps) {
   const handleRemoveReference = (e: React.MouseEvent) => {
     e.stopPropagation();
     props.deleteNode();
+  };
+
+  const handleDeletePage = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (id) setDeletionCandidateId(id, props.deleteNode);
   };
 
   if (!page) {
@@ -85,8 +93,16 @@ export function SubpageItemView(props: NodeViewProps) {
           <button
             type="button"
             onClick={handleRemoveReference}
-            className="p-1.5 text-muted hover:text-accent-red hover:bg-accent-red/10 rounded transition-colors"
+            className="p-1.5 text-muted hover:text-accent hover:bg-accent/10 rounded transition-colors"
             title="Remove reference from editor (does not delete the page)"
+          >
+            <Unlink size={16} />
+          </button>
+          <button
+            type="button"
+            onClick={handleDeletePage}
+            className="p-1.5 text-muted hover:text-accent-red hover:bg-accent-red/10 rounded transition-colors"
+            title="Delete page and subpages"
           >
             <Trash2 size={16} />
           </button>

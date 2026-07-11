@@ -116,6 +116,13 @@ export const Commands = Extension.create({
               return false;
             }
           }
+          const textBefore = $from.parent.textContent.slice(
+            0,
+            range.from - $from.start(),
+          );
+          if (textBefore.length > 0 && !/[\s]$/.test(textBefore)) {
+            return false;
+          }
           return true;
         },
       }),
@@ -206,6 +213,17 @@ export const getSuggestionItems = ({ query }: { query: string }) => {
         const color = resolveColor(activeFlags, "yellow");
         convertOrSplitBlock(editor, range, () => {
           editor.chain().focus().setHeading({ level: 2, color }).run();
+        });
+      },
+    },
+    {
+      title: "Heading 3",
+      icon: ICON_H2,
+      flags: [{ key: "c", label: "Color" }] as CommandFlag[],
+      command: ({ editor, range }: any) => {
+        const color = resolveColor(activeFlags, "yellow");
+        convertOrSplitBlock(editor, range, () => {
+          editor.chain().focus().setHeading({ level: 3, color }).run();
         });
       },
     },

@@ -87,13 +87,21 @@
     }
 
     ::selection {
-        background-color: var(--gruv-aqua);
-        color: var(--bg-primary);
+        background-color: color-mix(in srgb, var(--accent) 35%, transparent);
+        color: inherit;
     }
 
     ::-moz-selection {
-        background-color: var(--gruv-aqua);
-        color: var(--bg-primary);
+        background-color: color-mix(in srgb, var(--accent) 35%, transparent);
+        color: inherit;
+    }
+
+    
+    .prose code::before,
+    .prose code::after,
+    .ProseMirror code::before,
+    .ProseMirror code::after {
+        content: none !important;
     }
 }
 
@@ -211,7 +219,7 @@
         animation: retro-slide-close 0.2s ease-in forwards;
     }
 
-    /* Win95 Bevel Borders */
+    
     .retro-bevel {
         border: 2px solid;
         border-color: var(--bevel-light) var(--bevel-dark) var(--bevel-dark)
@@ -230,9 +238,7 @@
     }
 }
 
-/* ===========================================
-   Custom Scrollbar
-   =========================================== */
+
 .custom-scrollbar::-webkit-scrollbar {
     width: 8px;
     height: 8px;
@@ -259,6 +265,12 @@
 
 .ProseMirror strong {
     font-weight: 700 !important;
+    color: var(--editor-bold-color, var(--gruv-orange));
+}
+
+.ProseMirror span[style*="color"] strong,
+.ProseMirror strong span[style*="color"] {
+    color: inherit;
 }
 
 .ProseMirror em {
@@ -420,9 +432,9 @@
 .ProseMirror table th {
     border: 1px solid var(--border-color) !important;
     padding: 0.35rem 0.5rem !important;
-    /* Tighter padding for cells */
+    
     font-size: 0.75rem !important;
-    /* Smaller, cozier text */
+    
     min-width: 60px !important;
     vertical-align: middle !important;
     transition: background-color 0.15s ease !important;
@@ -496,7 +508,7 @@
     opacity: 0.6;
 }
 
-/* Table inside NodeView wrapper - ensure content renders cleanly */
+
 .table-block-content .tableWrapper {
     margin: 0 !important;
     overflow-x: auto;
@@ -550,7 +562,7 @@
     border-color: var(--accent) !important;
 }
 
-/* Checked State - Gruvbox Green with checkmark */
+
 .ProseMirror
     ul[data-type="taskList"]
     li
@@ -564,34 +576,32 @@
     background-repeat: no-repeat !important;
 }
 
-/* Task Item Text Content */
+
 .ProseMirror ul[data-type="taskList"] li > div {
     flex: 1 !important;
     min-width: 0 !important;
 }
 
-/* Reset paragraph margins inside task items so text aligns with checkbox */
+
 .ProseMirror ul[data-type="taskList"] li > div p {
     margin-top: 0 !important;
     margin-bottom: 0 !important;
     line-height: 1.6 !important;
 }
 
-/* Checked Text Style - Strikethrough */
+
 .ProseMirror ul[data-type="taskList"] li[data-checked="true"] > div {
     color: var(--text-muted) !important;
     text-decoration: line-through !important;
     text-decoration-thickness: 2px !important;
 }
 
-/* Ensure Text starts at the top of the container */
+
 .ProseMirror ul[data-type="taskList"] li > div > p:first-child {
     margin-top: 0 !important;
 }
 
-/* ===========================================
-   CODE BLOCKS
-   =========================================== */
+
 .ProseMirror pre {
     background-color: transparent !important;
     color: var(--text-main) !important;
@@ -606,9 +616,7 @@
     overflow-x: auto !important;
 }
 
-/* ===========================================
-   IMAGES - Retro Style
-   =========================================== */
+
 .ProseMirror img {
     max-width: 100%;
     height: auto;
@@ -633,7 +641,7 @@
     outline-offset: 2px;
 }
 
-/* Links */
+
 .ProseMirror a {
     color: var(--gruv-blue);
     text-decoration: underline;
@@ -654,7 +662,7 @@
     text-decoration-color: var(--gruv-aqua);
 }
 
-/* Placeholder */
+
 .ProseMirror p.is-editor-empty:first-child::before {
     content: attr(data-placeholder);
     color: var(--text-muted);
@@ -668,9 +676,7 @@
     opacity: 0.55;
 }
 
-/* ===========================================
-   Print / PDF Styles
-   =========================================== */
+
 @media print {
     @page {
         margin: 2cm;
@@ -681,7 +687,7 @@
         color: black !important;
     }
 
-    /* Hide UI elements */
+    
     .bg-sidebar,
     button,
     [role="dialog"],
@@ -690,7 +696,7 @@
         display: none !important;
     }
 
-    /* Style Editor Content */
+    
     .ProseMirror {
         padding: 0 !important;
         border: none !important;
@@ -699,7 +705,7 @@
         font-family: "Inter", sans-serif !important;
     }
 
-    /* Ensure content is visible */
+    
     #root,
     main,
     .flex-1 {
@@ -708,15 +714,13 @@
         overflow: visible !important;
     }
 
-    /* Reset grid layout to show only main content */
+    
     .flex.h-screen {
         display: block !important;
     }
 }
 
-/* ===========================================
-   Syntax Highlighting (Gruvbox)
-   =========================================== */
+
 .hljs-comment,
 .hljs-quote {
     color: var(--text-muted);
@@ -783,48 +787,53 @@
     font-weight: bold;
 }
 
-/* ===========================================
-   Component Flags Styling
-   =========================================== */
+
 
 .ProseMirror h1[data-color="red"],
-.ProseMirror h2[data-color="red"] {
+.ProseMirror h2[data-color="red"],
+.ProseMirror h3[data-color="red"] {
     color: var(--gruv-red) !important;
     text-shadow: 2px 2px 0px var(--bg-primary) !important;
 }
 
 .ProseMirror h1[data-color="yellow"],
-.ProseMirror h2[data-color="yellow"] {
+.ProseMirror h2[data-color="yellow"],
+.ProseMirror h3[data-color="yellow"] {
     color: var(--gruv-yellow) !important;
     text-shadow: 2px 2px 0px var(--bg-primary) !important;
 }
 
 .ProseMirror h1[data-color="green"],
-.ProseMirror h2[data-color="green"] {
+.ProseMirror h2[data-color="green"],
+.ProseMirror h3[data-color="green"] {
     color: var(--gruv-green) !important;
     text-shadow: 2px 2px 0px var(--bg-primary) !important;
 }
 
 .ProseMirror h1[data-color="blue"],
-.ProseMirror h2[data-color="blue"] {
+.ProseMirror h2[data-color="blue"],
+.ProseMirror h3[data-color="blue"] {
     color: var(--gruv-blue) !important;
     text-shadow: 2px 2px 0px var(--bg-primary) !important;
 }
 
 .ProseMirror h1[data-color="purple"],
-.ProseMirror h2[data-color="purple"] {
+.ProseMirror h2[data-color="purple"],
+.ProseMirror h3[data-color="purple"] {
     color: var(--gruv-purple) !important;
     text-shadow: 2px 2px 0px var(--bg-primary) !important;
 }
 
 .ProseMirror h1[data-color="aqua"],
-.ProseMirror h2[data-color="aqua"] {
+.ProseMirror h2[data-color="aqua"],
+.ProseMirror h3[data-color="aqua"] {
     color: var(--gruv-aqua) !important;
     text-shadow: 2px 2px 0px var(--bg-primary) !important;
 }
 
 .ProseMirror h1[data-color="orange"],
-.ProseMirror h2[data-color="orange"] {
+.ProseMirror h2[data-color="orange"],
+.ProseMirror h3[data-color="orange"] {
     color: var(--gruv-orange) !important;
     text-shadow: 2px 2px 0px var(--bg-primary) !important;
 }
@@ -959,9 +968,7 @@
     flex: 1;
 }
 
-/* ===========================================
-   SEARCH BAR - Gruvbox Retro Theme (Refined)
-   =========================================== */
+
 .search-bar-container {
     position: absolute;
     top: 48px;
@@ -1087,7 +1094,7 @@
     border-color: var(--gruv-red);
 }
 
-/* Search Highlights */
+
 .search-highlight {
     background-color: color-mix(in srgb, var(--gruv-yellow) 30%, transparent);
     outline: 1px solid color-mix(in srgb, var(--gruv-yellow) 50%, transparent);
@@ -1112,32 +1119,30 @@
     animation: search-pulse 1s infinite;
 }
 
-/* ===========================================
-   INLINE CODE
-   =========================================== */
+
 .ProseMirror code {
     background-color: var(--inline-code-bg);
     color: var(--gruv-orange);
     font-family: var(--font-code), monospace;
     font-size: 0.85em;
-    padding: 0.1em 0.35em;
-    border: 1px solid var(--border-color);
+    padding: 0.05em 0.25em;
+    border: 1px solid color-mix(in srgb, var(--border-color) 40%, transparent);
+    border-radius: 4px;
     box-decoration-break: clone;
     -webkit-box-decoration-break: clone;
 }
 
-/* Don't apply inline code styles to code blocks */
+
 .ProseMirror pre code {
     background-color: transparent;
     color: inherit;
     font-size: inherit;
     padding: 0;
     border: none;
+    border-radius: 0;
 }
 
-/* ===========================================
-   RETRO LOADING SCREEN
-   =========================================== */
+
 @keyframes retro-blink {
     0%,
     100% {
@@ -1234,3 +1239,5 @@
     text-transform: uppercase;
     animation: retro-blink 1s step-start infinite;
 }
+
+

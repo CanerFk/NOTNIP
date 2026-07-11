@@ -90,6 +90,7 @@ export function SearchBar({ editor, isOpen, onClose }: SearchBarProps) {
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === "Escape") {
       e.preventDefault();
+      e.stopPropagation();
       handleClose();
     } else if (e.key === "Enter") {
       e.preventDefault();
@@ -104,6 +105,7 @@ export function SearchBar({ editor, isOpen, onClose }: SearchBarProps) {
   const handleReplaceKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === "Escape") {
       e.preventDefault();
+      e.stopPropagation();
       handleClose();
     } else if (e.key === "Enter") {
       e.preventDefault();

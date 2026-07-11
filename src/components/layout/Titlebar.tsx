@@ -5,14 +5,10 @@ import { cn } from '../../lib/utils';
 
 
 export function Titlebar() {
-    // const { activePageId, pages } = useStore(); // Unused for now
     const [isMaximized, setIsMaximized] = useState(false);
 
     useEffect(() => {
-        // Check initial state
         getCurrentWindow().isMaximized().then(setIsMaximized);
-        // There isn't a direct event listener for maximize change easily accessible without more heavy lifting
-        // For now we just toggle state on click.
     }, []);
 
     const handleMinimize = () => getCurrentWindow().minimize();

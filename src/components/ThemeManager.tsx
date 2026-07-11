@@ -22,6 +22,7 @@ export function ThemeManager() {
       "--editor-title-color",
       themePreferences.editorTitleColor,
     );
+    root.style.setProperty("--editor-bold-color", themePreferences.boldColor || "#e78a4e");
 
     const fontBody = themePreferences.fontBody;
     root.style.setProperty(
@@ -46,7 +47,7 @@ export function ThemeManager() {
       lineHeight: 1.1,
       paragraphSpacing: 0.4,
       zoom: 100,
-      justifyText: false,
+      textAlign: "left",
     };
     const fontSize = Math.min(24, Math.max(12, ea.fontSize ?? 17));
     const lineHeight = Math.min(2.5, Math.max(1.0, ea.lineHeight ?? 1.1));
@@ -63,10 +64,9 @@ export function ThemeManager() {
       `${paragraphSpacing}em`,
     );
     root.style.setProperty("--editor-zoom", String(zoom / 100));
-    root.style.setProperty(
-      "--editor-justify",
-      ea.justifyText ? "justify" : "left",
-    );
+    const textAlign =
+      (ea as any).textAlign || ((ea as any).justifyText ? "justify" : "left");
+    root.style.setProperty("--editor-justify", textAlign);
   }, [editorAppearance]);
 
   return null;

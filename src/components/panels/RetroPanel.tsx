@@ -82,7 +82,7 @@ export function RetroPanel({
             ref={panelRef}
             className={cn(
                 "fixed z-[100] bg-background border-2 border-border",
-                "shadow-retro select-none",
+                "shadow-retro select-none origin-top will-change-transform",
                 isClosing ? "animate-retro-shutter-close" : "animate-retro-shutter",
                 isDragging && "cursor-grabbing opacity-90"
             )}

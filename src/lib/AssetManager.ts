@@ -54,7 +54,6 @@ class AssetManager {
 
             console.log("[AssetManager] Processed:", metadata);
 
-            // Record in DB
             await dbService.getDb().execute(
                 `INSERT OR IGNORE INTO assets (file_hash, original_name, mime_type, size_bytes, width, height, created_at) VALUES ($1, $2, $3, $4, $5, $6, $7)`,
                 [
@@ -68,12 +67,11 @@ class AssetManager {
                 ]
             );
 
-            // Convert absolute path to Tauri Asset Protocol URL for the frontend
             const assetUrl = convertFileSrc(metadata.path);
 
             return {
                 ...metadata,
-                path: assetUrl // Return the usable URL for <img src>
+                path: assetUrl 
             };
 
         } catch (e) {

@@ -262,7 +262,7 @@ export function PomodoroPanel() {
     MODE_ICONS[currentMode as keyof typeof MODE_ICONS] || Briefcase;
 
   const numberInputClass =
-    "w-12 bg-[var(--bg-primary)] border-2 border-border text-main text-xs text-center py-0.5 focus:outline-none focus:border-accent [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none";
+    "w-11 h-7 bg-[var(--bg-primary)] border-2 border-border text-main text-xs text-center focus:outline-none focus:border-accent [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none";
 
   return (
     <div
@@ -388,28 +388,30 @@ export function PomodoroPanel() {
             <span className="text-muted text-[10px] tracking-widest uppercase">
               FOCUS
             </span>
-            <div className="flex items-center gap-1.5">
-              <input
-                type="number"
-                min={1}
-                max={120}
-                value={workInput}
-                onChange={(e) => setWorkInput(e.target.value)}
-                onBlur={(e) => commitInput(e.target.value, "work")}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter")
-                    commitInput((e.target as HTMLInputElement).value, "work");
-                }}
-                className={numberInputClass}
-                style={SILKSCREEN_STYLE}
-              />
-              <span className="text-muted text-[10px]">min</span>
-              <div className="flex gap-1.5 ml-auto">
+            <div className="flex flex-col gap-1.5">
+              <div className="flex items-center gap-1.5">
+                <input
+                  type="number"
+                  min={1}
+                  max={120}
+                  value={workInput}
+                  onChange={(e) => setWorkInput(e.target.value)}
+                  onBlur={(e) => commitInput(e.target.value, "work")}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter")
+                      commitInput((e.target as HTMLInputElement).value, "work");
+                  }}
+                  className={numberInputClass}
+                  style={SILKSCREEN_STYLE}
+                />
+                <span className="text-muted text-[10px]">min</span>
+              </div>
+              <div className="grid grid-cols-3 gap-1.5">
                 {[25, 30, 50].map((m) => (
                   <button
                     key={m}
                     onClick={() => applyConfiguration("work", m * 60)}
-                    className={`py-1 px-1.5 border-2 text-xs font-bold transition-all shadow-[2px_2px_0_0_var(--shadow-color)] active:translate-y-[2px] active:translate-x-[2px] active:shadow-none ${wDur === m * 60 ? "bg-gruv-red/20 border-gruv-red text-gruv-red" : "bg-element border-border hover:bg-element/80"}`}
+                    className={`py-1 px-1 border-2 text-xs font-bold transition-all shadow-[2px_2px_0_0_var(--shadow-color)] active:translate-y-[2px] active:translate-x-[2px] active:shadow-none ${wDur === m * 60 ? "bg-gruv-red/20 border-gruv-red text-gruv-red" : "bg-element border-border hover:bg-element/80"}`}
                   >
                     {m}m
                   </button>
@@ -423,11 +425,11 @@ export function PomodoroPanel() {
               BREAKS
             </span>
             <div className="flex flex-col gap-1.5 bg-element px-2 py-1.5 border-2 border-border shadow-[2px_2px_0_0_var(--shadow-color)]">
-              <div className="flex justify-between items-center">
+              <div className="flex items-center justify-between">
                 <span className="text-sm text-gruv-blue flex items-center gap-1">
                   <Coffee size={12} /> Short
                 </span>
-                <div className="flex items-center gap-1">
+                <div className="flex items-center gap-1.5">
                   <input
                     type="number"
                     min={1}
@@ -446,25 +448,27 @@ export function PomodoroPanel() {
                     style={SILKSCREEN_STYLE}
                   />
                   <span className="text-muted text-[10px]">m</span>
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-1.5">
                   {[5, 10].map((m) => (
                     <button
                       key={m}
                       onClick={() => applyConfiguration("shortBreak", m * 60)}
-                      className={`px-2 py-0.5 border-2 text-xs transition-colors ${sbDur === m * 60 ? "bg-gruv-blue text-bg-primary border-gruv-blue" : "border-border hover:border-gruv-blue"}`}
+                      className={`px-2 py-1 border-2 text-xs transition-colors ${sbDur === m * 60 ? "bg-gruv-blue text-bg-primary border-gruv-blue" : "border-border hover:border-gruv-blue"}`}
                     >
                       {m}m
                     </button>
                   ))}
-                </div>
               </div>
             </div>
 
             <div className="flex flex-col gap-1.5 bg-element px-2 py-1.5 border-2 border-border shadow-[2px_2px_0_0_var(--shadow-color)]">
-              <div className="flex justify-between items-center">
+              <div className="flex items-center justify-between">
                 <span className="text-sm text-gruv-purple flex items-center gap-1">
                   <Moon size={12} /> Long
                 </span>
-                <div className="flex items-center gap-1">
+                <div className="flex items-center gap-1.5">
                   <input
                     type="number"
                     min={1}
@@ -483,16 +487,18 @@ export function PomodoroPanel() {
                     style={SILKSCREEN_STYLE}
                   />
                   <span className="text-muted text-[10px]">m</span>
+                </div>
+              </div>
+              <div className="grid grid-cols-3 gap-1.5">
                   {[15, 20, 30].map((m) => (
                     <button
                       key={m}
                       onClick={() => applyConfiguration("longBreak", m * 60)}
-                      className={`px-2 py-0.5 border-2 text-xs transition-colors ${lbDur === m * 60 ? "bg-gruv-purple text-bg-primary border-gruv-purple" : "border-border hover:border-gruv-purple"}`}
+                      className={`px-1 py-1 border-2 text-xs transition-colors ${lbDur === m * 60 ? "bg-gruv-purple text-bg-primary border-gruv-purple" : "border-border hover:border-gruv-purple"}`}
                     >
                       {m}m
                     </button>
                   ))}
-                </div>
               </div>
             </div>
           </div>
@@ -519,7 +525,7 @@ export function PomodoroPanel() {
 
           <button
             onClick={resetSessions}
-            className="mt-auto flex items-center justify-center gap-1 py-1.5 px-2 border-2 border-dashed border-gruv-red text-gruv-red hover:bg-gruv-red/10 transition-colors text-xs tracking-widest"
+            className="mt-1 flex items-center justify-center gap-1 py-1.5 px-2 border-2 border-dashed border-gruv-red text-gruv-red hover:bg-gruv-red/10 transition-colors text-xs tracking-widest"
           >
             <RefreshCw size={12} /> RESET CYCLES
           </button>

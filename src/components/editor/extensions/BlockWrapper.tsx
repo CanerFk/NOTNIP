@@ -11,7 +11,7 @@ export interface BlockWrapperProps {
     icon?: React.ReactNode;
     children: React.ReactNode | ((isMinimized: boolean) => React.ReactNode);
     className?: string;
-    showAlign?: boolean; // New prop to toggle alignment controls
+    showAlign?: boolean;
 }
 
 export const BlockWrapper = memo(function BlockWrapper({
@@ -22,16 +22,13 @@ export const BlockWrapper = memo(function BlockWrapper({
     icon,
     children,
     className,
-    showAlign = true // Default to true
+    showAlign = true
 }: BlockWrapperProps) {
-    // Attributes from node
     const { width, align, isMinimized } = node.attrs;
 
-    // Internal State for width override during animation
     const [w, setW] = useState(width || '100%');
     const [isResizing, setIsResizing] = useState(false);
 
-    // Refs for resize logic
     const wrapperRef = useRef<HTMLDivElement>(null);
     const startXRef = useRef(0);
     const startWRef = useRef(0);
@@ -112,7 +109,7 @@ export const BlockWrapper = memo(function BlockWrapper({
             className={cn(
                 "relative transition-all duration-300 ease-in-out",
                 alignClass,
-                isMinimized ? "inline-block align-middle" : "block", // Layout behavior switch
+                isMinimized ? "inline-block align-middle" : "block", 
                 className
             )}
             style={wrapperStyle}
@@ -125,7 +122,7 @@ export const BlockWrapper = memo(function BlockWrapper({
                     "border-border/50 dark:border-transparent",
                     "hover:border-accent hover:shadow-[3px_3px_0px_0px_var(--accent)]",
                     isResizing && "border-accent ring-2 ring-accent/30",
-                    isMinimized ? "rounded-sm" : "rounded-none" // REMOVED h-8 to allow smooth collapse
+                    isMinimized ? "rounded-sm" : "rounded-none" 
                 )}
             >
                 {/* --- HEADER --- */}

@@ -4,6 +4,42 @@ import { dbService, NoteMetadata } from "../lib/database.ts";
 
 export interface PageMetadata extends NoteMetadata {}
 
+const pageIndexCache = new WeakMap<
+  PageMetadata[],
+  ReadonlyMap<string, PageMetadata>
+>();
+
+export function getPageIndex(
+  pages: PageMetadata[],
+): ReadonlyMap<string, PageMetadata> {
+  const cachedIndex = pageIndexCache.get(pages);
+  if (cachedIndex) return cachedIndex;
+
+  const pageIndex = new Map(pages.map((page) => [page.id, page]));
+  pageIndexCache.set(pages, pageIndex);
+  return pageIndex;
+}
+
+const pendingPageCreations = new Map<string, Promise<void>>();
+
+function trackPageCreation(note: PageMetadata): Promise<void> {
+  const creation = dbService.createNote(note);
+  pendingPageCreations.set(note.id, creation);
+  void creation.then(
+    () => {
+      if (pendingPageCreations.get(note.id) === creation) {
+        pendingPageCreations.delete(note.id);
+      }
+    },
+    () => {
+      if (pendingPageCreations.get(note.id) === creation) {
+        pendingPageCreations.delete(note.id);
+      }
+    },
+  );
+  return creation;
+}
+
 function debounce<T extends (...args: any[]) => any>(
   fn: T,
   ms: number,
@@ -43,10 +79,11 @@ interface StoreState {
   fetchPages: () => Promise<void>;
   addPage: () => Promise<void>;
   addSubpage: (parentId: string) => Promise<string>;
-  removePage: (id: string, deleteDescendants?: boolean) => Promise<void>;
+  removePage: (id: string) => Promise<boolean>;
 
   deletionCandidateId: string | null;
-  setDeletionCandidateId: (id: string | null) => void;
+  deletionCandidateCleanup: (() => void) | null;
+  setDeletionCandidateId: (id: string | null, cleanup?: (() => void) | null) => void;
 
   setActivePage: (id: string) => void;
   closeActivePage: () => void;
@@ -54,12 +91,15 @@ interface StoreState {
   updatePageTitle: (id: string, title: string) => void;
   updatePageIcon: (id: string, icon: string) => void;
   updatePageContent: (id: string, content: any) => void;
+  flushSaveContent: () => void;
 
   saveStatus: "idle" | "saving" | "saved" | "error";
   setSaveStatus: (status: "idle" | "saving" | "saved" | "error") => void;
 
   isSettingsOpen: boolean;
+  settingsTab: "appearance" | "typography" | "editor" | "data" | "guide";
   toggleSettings: () => void;
+  openSettings: (tab?: "appearance" | "typography" | "editor" | "data" | "guide") => void;
 
   themePreferences: {
     accentColor: string;
@@ -70,6 +110,7 @@ interface StoreState {
     activeItemColor: string;
     headingColor: string;
     editorTitleColor: string;
+    boldColor: string;
     fontBody: string;
     fontCode: string;
     readableLineLength: boolean;
@@ -122,25 +163,21 @@ interface StoreState {
     lineHeight: number;
     paragraphSpacing: number;
     zoom: number;
-    justifyText: boolean;
+    textAlign: "left" | "center" | "right" | "justify";
   };
   updateEditorAppearance: (
     prefs: Partial<StoreState["editorAppearance"]>,
   ) => void;
 
-  // Favorites
   favoritePageIds: string[];
   toggleFavorite: (id: string) => void;
 
-  // Recent pages (last 20 visited, IDs only)
   recentPageIds: string[];
 
-  // Quick switcher / command palette open state
   isQuickSwitcherOpen: boolean;
   openQuickSwitcher: () => void;
   closeQuickSwitcher: () => void;
 
-  // Daily note
   openOrCreateDailyNote: () => Promise<void>;
 }
 
@@ -178,8 +215,11 @@ export const useStore = create<StoreState>()(
       setSaveStatus: (status) => set({ saveStatus: status }),
 
       isSettingsOpen: false,
+      settingsTab: "appearance",
       toggleSettings: () =>
         set((state) => ({ isSettingsOpen: !state.isSettingsOpen })),
+      openSettings: (tab = "appearance") =>
+        set({ isSettingsOpen: true, settingsTab: tab }),
 
       themePreferences: {
         accentColor: "#e78a4e",
@@ -190,6 +230,7 @@ export const useStore = create<StoreState>()(
         activeItemColor: "#d3869b",
         headingColor: "#d8a657",
         editorTitleColor: "#e78a4e",
+        boldColor: "#e78a4e",
         fontBody: "Inter",
         fontCode: "JetBrains Mono",
         readableLineLength: true,
@@ -204,7 +245,7 @@ export const useStore = create<StoreState>()(
         lineHeight: 1.1,
         paragraphSpacing: 0.4,
         zoom: 100,
-        justifyText: false,
+        textAlign: "left",
       },
       updateEditorAppearance: (prefs) =>
         set((state) => ({
@@ -252,7 +293,7 @@ export const useStore = create<StoreState>()(
           activePageId: newId,
         }));
         try {
-          await dbService.createNote(newPage);
+          await trackPageCreation(newPage);
         } catch (e) {
           console.error("Failed to create daily note", e);
           set((state) => ({
@@ -377,7 +418,7 @@ export const useStore = create<StoreState>()(
         }));
 
         try {
-          await dbService.createNote(newPage);
+          await trackPageCreation(newPage);
         } catch (e) {
           console.error("Failed to create page in DB", e);
           set((state) => ({
@@ -406,7 +447,7 @@ export const useStore = create<StoreState>()(
         }));
 
         try {
-          await dbService.createNote(newPage);
+          await trackPageCreation(newPage);
         } catch (e) {
           console.error("Failed to create subpage in DB", e);
           set((state) => ({
@@ -418,51 +459,102 @@ export const useStore = create<StoreState>()(
       },
 
       removePage: async (id) => {
-        debouncedSaveContent.flush();
+        const getAllDescendants = (pageId: string, allPages: PageMetadata[]) => {
+          const childrenByParent = new Map<string, string[]>();
+          for (const page of allPages) {
+            if (!page.parent_id) continue;
+            const siblings = childrenByParent.get(page.parent_id);
+            if (siblings) siblings.push(page.id);
+            else childrenByParent.set(page.parent_id, [page.id]);
+          }
 
-        const getAllDescendants = (
-          pageId: string,
-          allPages: PageMetadata[],
-        ): string[] => {
-          const children = allPages.filter((p) => p.parent_id === pageId);
-          let descendants: string[] = [];
-          for (const child of children) {
-            descendants.push(child.id);
-            descendants = descendants.concat(
-              getAllDescendants(child.id, allPages),
-            );
+          const descendants: string[] = [];
+          const stack = [...(childrenByParent.get(pageId) || [])];
+          while (stack.length > 0) {
+            const childId = stack.pop();
+            if (!childId) continue;
+            descendants.push(childId);
+            const children = childrenByParent.get(childId);
+            if (children) stack.push(...children);
           }
           return descendants;
         };
 
-        const currentPages = get().pages;
+        const stateBeforeDelete = get();
+        const currentPages = stateBeforeDelete.pages;
+        if (!currentPages.some((page) => page.id === id)) return false;
         const toDelete = [id, ...getAllDescendants(id, currentPages)];
-        const previousPages = [...currentPages];
-        const previousActiveId = get().activePageId;
+        const toDeleteSet = new Set(toDelete);
+        const pagesAfterDelete = currentPages.filter(
+          (page) => !toDeleteSet.has(page.id),
+        );
+        const activePageIdAfterDelete = toDeleteSet.has(
+          stateBeforeDelete.activePageId || "",
+        )
+          ? pagesAfterDelete[0]?.id ?? null
+          : stateBeforeDelete.activePageId;
+        const previousDeleteState = {
+          pages: [...currentPages],
+          activePageId: stateBeforeDelete.activePageId,
+          favoritePageIds: [...stateBeforeDelete.favoritePageIds],
+          recentPageIds: [...stateBeforeDelete.recentPageIds],
+        };
 
         set((state) => {
-          const newPages = state.pages.filter((p) => !toDelete.includes(p.id));
-          let newActiveId = state.activePageId;
-          if (toDelete.includes(state.activePageId || "")) {
-            newActiveId = newPages.length > 0 ? newPages[0].id : null;
-          }
           return {
-            pages: newPages,
-            activePageId: newActiveId,
+            pages: state.pages.filter((page) => !toDeleteSet.has(page.id)),
+            activePageId: activePageIdAfterDelete,
             favoritePageIds: state.favoritePageIds.filter(
-              (id) => !toDelete.includes(id),
+              (id) => !toDeleteSet.has(id),
             ),
             recentPageIds: state.recentPageIds.filter(
-              (id) => !toDelete.includes(id),
+              (id) => !toDeleteSet.has(id),
             ),
           };
         });
 
         try {
+          await Promise.allSettled(
+            toDelete
+              .map((pageId) => pendingPageCreations.get(pageId))
+              .filter((creation): creation is Promise<void> => !!creation),
+          );
           await dbService.deleteNotesBatch(toDelete);
+          return true;
         } catch (e) {
           console.error("Failed to delete pages in DB, rolling back", e);
-          set({ pages: previousPages, activePageId: previousActiveId });
+          set((state) => {
+            const currentPageIds = new Set(state.pages.map((page) => page.id));
+            const restoredPages = previousDeleteState.pages.filter(
+              (page) =>
+                toDeleteSet.has(page.id) && !currentPageIds.has(page.id),
+            );
+            const restoreIds = new Set(restoredPages.map((page) => page.id));
+            return {
+              pages: [...state.pages, ...restoredPages],
+              activePageId:
+                state.activePageId === activePageIdAfterDelete
+                  ? previousDeleteState.activePageId
+                  : state.activePageId,
+              favoritePageIds: [
+                ...state.favoritePageIds,
+                ...previousDeleteState.favoritePageIds.filter(
+                  (pageId) =>
+                    restoreIds.has(pageId) &&
+                    !state.favoritePageIds.includes(pageId),
+                ),
+              ],
+              recentPageIds: [
+                ...previousDeleteState.recentPageIds.filter((pageId) =>
+                  restoreIds.has(pageId),
+                ),
+                ...state.recentPageIds.filter(
+                  (pageId) => !restoreIds.has(pageId),
+                ),
+              ].slice(0, 20),
+            };
+          });
+          return false;
         }
       },
 
@@ -507,9 +599,14 @@ export const useStore = create<StoreState>()(
       updatePageContent: (id, content) => {
         debouncedSaveContent(id, content, get().setSaveStatus);
       },
+      flushSaveContent: () => {
+        debouncedSaveContent.flush();
+      },
 
       deletionCandidateId: null,
-      setDeletionCandidateId: (id) => set({ deletionCandidateId: id }),
+      deletionCandidateCleanup: null,
+      setDeletionCandidateId: (id, cleanup = null) =>
+        set({ deletionCandidateId: id, deletionCandidateCleanup: cleanup }),
     }),
     {
       name: "notnip-storage",

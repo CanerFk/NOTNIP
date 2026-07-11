@@ -8,8 +8,6 @@ export function FullCalendarModal() {
     const calendarSelectedDate = useStore(state => state.calendarSelectedDate);
     const setCalendarSelectedDate = useStore(state => state.setCalendarSelectedDate);
     const calendarTodosByDate = useStore(state => state.calendarTodosByDate);
-
-    // UI Local State for month viewed
     const [viewDate, setViewDate] = useState(new Date(calendarSelectedDate));
 
 
@@ -19,20 +17,18 @@ export function FullCalendarModal() {
     const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
     const firstDayOfMonth = new Date(currentYear, currentMonth, 1).getDay();
 
-    // Adjust Sunday to be end of week if needed, or 0=Sunday
     const offset = firstDayOfMonth === 0 ? 6 : firstDayOfMonth - 1;
 
     const monthStr = viewDate.toLocaleDateString(undefined, { month: 'long', year: 'numeric' });
 
     const handleDayClick = (dayNumber: number) => {
         const newDate = new Date(currentYear, currentMonth, dayNumber);
-        // Format strictly to YYYY-MM-DD
         const y = newDate.getFullYear();
         const m = String(newDate.getMonth() + 1).padStart(2, '0');
         const d = String(newDate.getDate()).padStart(2, '0');
 
         setCalendarSelectedDate(`${y}-${m}-${d}`);
-        toggleCalendarModal(); // Auto-close
+        toggleCalendarModal();
     };
 
     const handleOverlayClick = (e: React.MouseEvent) => {
@@ -47,8 +43,6 @@ export function FullCalendarModal() {
         setCalendarSelectedDate(today.toISOString().split('T')[0]);
         toggleCalendarModal();
     };
-
-    // Today strict calculation
     const todayStr = new Date().toISOString().split('T')[0];
 
     return (
@@ -98,8 +92,6 @@ export function FullCalendarModal() {
                         {/* Days */}
                         {Array.from({ length: daysInMonth }).map((_, i) => {
                             const dayNum = i + 1;
-
-                            // Build key str
                             const y = currentYear;
                             const m = String(currentMonth + 1).padStart(2, '0');
                             const d = String(dayNum).padStart(2, '0');

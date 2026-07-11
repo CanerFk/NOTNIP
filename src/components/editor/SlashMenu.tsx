@@ -4,8 +4,8 @@ import { cn } from '../../lib/utils'
 
 export const SlashMenu = forwardRef((props: any, ref) => {
     const [selectedIndex, setSelectedIndex] = useState(0)
-    const containerRef = useRef<HTMLDivElement>(null) // Ref for the container to handle scrolling
-    const itemRefs = useRef<(HTMLButtonElement | null)[]>([]) // Refs for items
+    const containerRef = useRef<HTMLDivElement>(null) 
+    const itemRefs = useRef<(HTMLButtonElement | null)[]>([])
 
     const selectItem = (index: number) => {
         const item = props.items[index]
@@ -28,11 +28,9 @@ export const SlashMenu = forwardRef((props: any, ref) => {
 
     useEffect(() => setSelectedIndex(0), [props.items])
 
-    // Auto-scroll when selectedIndex changes
     useEffect(() => {
         const row = itemRefs.current[selectedIndex];
         if (row && containerRef.current) {
-            // Check if the item is visible
             const container = containerRef.current;
             const itemTop = row.offsetTop;
             const itemBottom = itemTop + row.clientHeight;
@@ -74,25 +72,37 @@ export const SlashMenu = forwardRef((props: any, ref) => {
             ref={containerRef}
             className="bg-background border border-border shadow-retro rounded-none p-1 w-64 flex flex-col gap-1 overflow-y-auto max-h-60 animate-in fade-in zoom-in-95 duration-100 custom-scrollbar"
         >
-            <div className="text-[10px] uppercase tracking-wider text-muted font-bold px-2 py-1 mb-1 border-b border-border/50 sticky top-0 bg-background z-10">
-                Basic Blocks
-            </div>
-            {props.items.map((item: any, index: number) => (
-                <button
-                    ref={(el) => { itemRefs.current[index] = el }}
-                    className={cn(
-                        'flex items-center gap-2 px-2 py-1.5 text-sm w-full text-left transition-all font-mono',
-                        index === selectedIndex ? 'bg-accent text-white font-bold shadow-sm' : 'text-main hover:bg-element hover:text-main'
-                    )}
-                    key={index}
-                    onClick={() => selectItem(index)}
-                >
-                    <div className={cn("p-1 rounded-sm border border-transparent", index === selectedIndex ? "bg-white/20" : "bg-element/50")}>
-                        {item.icon}
-                    </div>
-                    <span className="flex-grow">{item.title}</span>
-                </button>
-            ))}
+            {(() => {
+                let currentGroup = '';
+                return props.items.map((item: any, index: number) => {
+                    const group = item.group || (item.title.startsWith('Template:') ? 'Templates' : 'Basic Blocks');
+                    const showHeader = group !== currentGroup;
+                    currentGroup = group;
+
+                    return (
+                        <div key={index} className="flex flex-col gap-1">
+                            {showHeader && (
+                                <div className="text-[10px] uppercase tracking-wider text-muted font-bold px-2 py-1 mb-1 mt-1 border-b border-border/50 sticky top-0 bg-background z-10">
+                                    {group}
+                                </div>
+                            )}
+                            <button
+                                ref={(el) => { itemRefs.current[index] = el }}
+                                className={cn(
+                                    'flex items-center gap-2 px-2 py-1.5 text-sm w-full text-left transition-all font-mono',
+                                    index === selectedIndex ? 'bg-accent text-white font-bold shadow-sm' : 'text-main hover:bg-element hover:text-main'
+                                )}
+                                onClick={() => selectItem(index)}
+                            >
+                                <div className={cn("p-1 rounded-sm border border-transparent flex-shrink-0", index === selectedIndex ? "bg-white/20" : "bg-element/50")}>
+                                    {item.icon}
+                                </div>
+                                <span className="flex-grow truncate">{item.title}</span>
+                            </button>
+                        </div>
+                    );
+                });
+            })()}
         </div>
     )
 })
@@ -122,6 +132,13 @@ export const SLASH_COMMANDS = [
         },
     },
     {
+        title: 'Heading 3',
+        icon: <Heading2 size={14} />,
+        command: ({ editor, range }: any) => {
+            editor.chain().focus().deleteRange(range).setNode('heading', { level: 3 }).run()
+        },
+    },
+    {
         title: 'Bullet List',
         icon: <List size={14} />,
         command: ({ editor, range }: any) => {
@@ -144,20 +161,15 @@ export const SLASH_COMMANDS = [
     },
     {
         title: 'Subpage',
-        icon: <FolderPlus size={14} color="#d79921" />, // Gruvbox Yellow
+        icon: <FolderPlus size={14} color="#d79921" />,
         command: ({ editor, range }: any) => {
-            // Import store dynamically or assume global import availability if possible, 
-            // but here we are in a pure TS file that exports an object. 
-            // We need to use the store to create the page.
             import('../../store/useStore').then(({ useStore }) => {
                 const store = useStore.getState();
                 if (!store.activePageId) return;
 
                 store.addSubpage(store.activePageId).then((newId) => {
-                    // Delete slash command
                     editor.chain().focus().deleteRange(range).run();
 
-                    // Insert Block
                     editor.chain().focus().insertContent({
                         type: 'subpageItem',
                         attrs: { id: newId }

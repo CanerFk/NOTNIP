@@ -10,6 +10,30 @@ import { cn } from "../../lib/utils";
 import { useEffect, useState } from "react";
 import { Minimize2 } from "lucide-react";
 
+function FocusSaveIndicator() {
+  const saveStatus = useStore((state) => state.saveStatus);
+  const [visible, setVisible] = useState(false);
+
+  useEffect(() => {
+    if (saveStatus === "saved") {
+      setVisible(true);
+      const t = setTimeout(() => setVisible(false), 2000);
+      return () => clearTimeout(t);
+    }
+  }, [saveStatus]);
+
+  if (!visible) return null;
+
+  return (
+    <div
+      className="fixed bottom-8 left-6 z-[99998] font-mono text-[10px] uppercase tracking-widest select-none pointer-events-none"
+      style={{ color: "var(--gruv-green)", opacity: 0.45 }}
+    >
+      SAVED
+    </div>
+  );
+}
+
 export function Layout({
   children,
 }: {
@@ -24,12 +48,10 @@ export function Layout({
   const isCalendarModalOpen = useStore((state) => state.isCalendarModalOpen);
   const [isResizingSidebar, setIsResizingSidebar] = useState(false);
 
-  // Sidebar Resize Drag Logic
   useEffect(() => {
     if (!isResizingSidebar) return;
 
     const handleMouseMove = (e: MouseEvent) => {
-      // Clamp between 230px (20% less) and 288px (w-72 default)
       const newWidth = Math.min(288, Math.max(230, e.clientX));
       setSidebarWidth(newWidth);
     };
@@ -49,25 +71,27 @@ export function Layout({
     };
   }, [isResizingSidebar, setSidebarWidth]);
 
-  // ESC key to exit focus mode - Capture phase to override editor
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.ctrlKey && e.shiftKey && e.key === "F") {
+        e.preventDefault();
+        toggleFocusMode();
+        return;
+      }
+
       if (isFocusMode && e.key === "Escape") {
         e.preventDefault();
-        e.stopPropagation();
         toggleFocusMode();
       }
     };
-    window.addEventListener("keydown", handleKeyDown, { capture: true });
-    return () =>
-      window.removeEventListener("keydown", handleKeyDown, { capture: true });
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
   }, [isFocusMode, toggleFocusMode]);
 
   return (
     <div className="flex flex-col h-screen w-screen bg-background text-main font-sans overflow-hidden border border-border shadow-2xl rounded-none relative">
       <ThemeManager />
 
-      {/* Titlebar - hidden in focus mode */}
       <div
         className={cn(
           "transition-opacity duration-300",
@@ -78,7 +102,6 @@ export function Layout({
       </div>
 
       <div className="flex flex-1 overflow-hidden">
-        {/* Sidebar - hidden in focus mode */}
         <aside
           className={cn(
             "flex-shrink-0 overflow-hidden relative",
@@ -88,7 +111,6 @@ export function Layout({
           style={{ width: isFocusMode ? 0 : sidebarWidth }}
         >
           <Sidebar />
-          {/* Invisible drag handle edge */}
           {!isFocusMode && (
             <div
               className={cn(
@@ -109,7 +131,6 @@ export function Layout({
             {children(setWordCount)}
           </div>
 
-          {/* Status Bar */}
           <div
             className={cn(
               "h-6 bg-sidebar border-t border-border flex items-center px-4 text-[10px] font-mono text-muted select-none justify-between transition-opacity duration-300",
@@ -131,20 +152,20 @@ export function Layout({
       {isCalendarModalOpen && <FullCalendarModal />}
       <QuickSwitcher />
 
-      {/* Floating Retro Panels */}
       <PanelManager />
 
-      {/* EXIT FOCUS MODE BUTTON - Subtle retro style */}
       {isFocusMode && (
         <button
           onClick={toggleFocusMode}
           className="fixed top-3 right-3 z-[99999] px-3 py-1.5 bg-element/80 backdrop-blur-sm text-muted hover:text-accent border border-border hover:border-accent transition-all rounded-none shadow-retro-sm cursor-pointer font-mono text-xs uppercase tracking-wider"
-          title="Exit Focus Mode (ESC)"
+          title="Exit Focus Mode (Ctrl+Shift+F or ESC)"
         >
           <Minimize2 size={14} className="inline mr-1.5" />
           ESC
         </button>
       )}
+
+      <FocusSaveIndicator />
     </div>
   );
 }

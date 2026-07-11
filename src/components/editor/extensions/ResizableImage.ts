@@ -6,8 +6,8 @@ export const ResizableImage = Image.extend({
     name: 'resizableImage',
 
     isolating: true,
-    selectable: false, // CRITICAL: Prevents cursor from selecting the node
-    draggable: false, // Prevent drag-and-drop
+    selectable: false,
+    draggable: false,
 
     addAttributes() {
         return {

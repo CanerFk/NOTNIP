@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useMemo, useCallback } from "react";
-import { useStore } from "../../store/useStore";
+import { getPageIndex, useStore } from "../../store/useStore";
 import {
   Search,
   Plus,
@@ -31,8 +31,6 @@ interface CommandResult {
 
 type SwitcherResult = PageResult | CommandResult;
 
-// ── Scoring ────────────────────────────────────────────────────────────────
-
 function scoreTitle(title: string, query: string): number {
   if (!query) return 0;
   const t = title.toLowerCase();
@@ -40,13 +38,11 @@ function scoreTitle(title: string, query: string): number {
   if (t === q) return 100;
   if (t.startsWith(q)) return 80;
   if (t.includes(q)) return 60;
-  // word boundary match
   const words = t.split(/\s+/);
   if (words.some((w) => w.startsWith(q))) return 50;
   return 0;
 }
 
-// ── Component ──────────────────────────────────────────────────────────────
 
 export function QuickSwitcher() {
   const isOpen = useStore((state) => state.isQuickSwitcherOpen);
@@ -65,12 +61,21 @@ export function QuickSwitcher() {
 
   const [query, setQuery] = useState("");
   const [selectedIndex, setSelectedIndex] = useState(0);
+  const [isClosing, setIsClosing] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
 
-  // Reset on open
+  const requestClose = useCallback(() => {
+    setIsClosing(true);
+    setTimeout(() => {
+      closeQuickSwitcher();
+      setIsClosing(false);
+    }, 160);
+  }, [closeQuickSwitcher]);
+
   useEffect(() => {
     if (isOpen) {
+      setIsClosing(false);
       setQuery("");
       setSelectedIndex(0);
       setTimeout(() => inputRef.current?.focus(), 30);
@@ -86,7 +91,7 @@ export function QuickSwitcher() {
         icon: <Plus size={14} />,
         action: () => {
           addPage();
-          closeQuickSwitcher();
+          requestClose();
         },
       },
       {
@@ -96,7 +101,7 @@ export function QuickSwitcher() {
         icon: <Calendar size={14} />,
         action: () => {
           openOrCreateDailyNote();
-          closeQuickSwitcher();
+          requestClose();
         },
       },
       {
@@ -106,7 +111,7 @@ export function QuickSwitcher() {
         icon: <Settings size={14} />,
         action: () => {
           toggleSettings();
-          closeQuickSwitcher();
+          requestClose();
         },
       },
       {
@@ -116,7 +121,7 @@ export function QuickSwitcher() {
         icon: <Sun size={14} />,
         action: () => {
           toggleTheme();
-          closeQuickSwitcher();
+          requestClose();
         },
       },
       {
@@ -126,7 +131,7 @@ export function QuickSwitcher() {
         icon: <Timer size={14} />,
         action: () => {
           openPanel("pomodoro");
-          closeQuickSwitcher();
+          requestClose();
         },
       },
       {
@@ -136,7 +141,7 @@ export function QuickSwitcher() {
         icon: <StickyNote size={14} />,
         action: () => {
           openPanel("quicknote");
-          closeQuickSwitcher();
+          requestClose();
         },
       },
       {
@@ -146,17 +151,17 @@ export function QuickSwitcher() {
         icon: <Calendar size={14} />,
         action: () => {
           openPanel("calendar");
-          closeQuickSwitcher();
+          requestClose();
         },
       },
     ],
     [
       addPage,
-      closeQuickSwitcher,
       openOrCreateDailyNote,
       toggleSettings,
       toggleTheme,
       openPanel,
+      requestClose,
     ],
   );
 
@@ -165,10 +170,11 @@ export function QuickSwitcher() {
     const lowerQ = q.toLowerCase();
 
     if (!q) {
-      // No query: show recents then favorites then commands
+      const pageById = getPageIndex(pages);
+      const recentPageIdSet = new Set(recentPageIds);
       const recentPages: PageResult[] = recentPageIds
-        .map((id) => pages.find((p) => p.id === id && !p.is_deleted))
-        .filter(Boolean)
+        .map((id) => pageById.get(id))
+        .filter((page) => page && !page.is_deleted)
         .map((p) => ({
           kind: "page" as const,
           id: p!.id,
@@ -179,9 +185,9 @@ export function QuickSwitcher() {
         .slice(0, 8);
 
       const favoritePages: PageResult[] = favoritePageIds
-        .map((id) => pages.find((p) => p.id === id && !p.is_deleted))
-        .filter(Boolean)
-        .filter((p) => !recentPageIds.includes(p!.id))
+        .map((id) => pageById.get(id))
+        .filter((page) => page && !page.is_deleted)
+        .filter((page) => !recentPageIdSet.has(page!.id))
         .map((p) => ({
           kind: "page" as const,
           id: p!.id,
@@ -193,7 +199,6 @@ export function QuickSwitcher() {
       return [...recentPages, ...favoritePages, ...commands].slice(0, 12);
     }
 
-    // Query mode: score pages and filter commands
     const pageResults: PageResult[] = pages
       .filter((p) => !p.is_deleted)
       .map((p) => {
@@ -212,12 +217,10 @@ export function QuickSwitcher() {
     return [...pageResults, ...commandResults].slice(0, 12);
   }, [query, pages, recentPageIds, favoritePageIds, commands]);
 
-  // Clamp selection
   useEffect(() => {
     setSelectedIndex((prev) => Math.min(prev, Math.max(0, results.length - 1)));
   }, [results.length]);
 
-  // Scroll selected into view
   useEffect(() => {
     const el = listRef.current?.querySelector(`[data-idx="${selectedIndex}"]`);
     el?.scrollIntoView({ block: "nearest" });
@@ -227,18 +230,18 @@ export function QuickSwitcher() {
     (result: SwitcherResult) => {
       if (result.kind === "page") {
         setActivePage(result.id);
-        closeQuickSwitcher();
+        requestClose();
       } else {
         result.action();
       }
     },
-    [setActivePage, closeQuickSwitcher],
+    [setActivePage, requestClose],
   );
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === "Escape") {
       e.preventDefault();
-      closeQuickSwitcher();
+      requestClose();
     } else if (e.key === "ArrowDown") {
       e.preventDefault();
       setSelectedIndex((i) => Math.min(i + 1, results.length - 1));
@@ -252,16 +255,24 @@ export function QuickSwitcher() {
     }
   };
 
-  if (!isOpen) return null;
+  if (!isOpen && !isClosing) return null;
 
   return (
     <div
-      className="fixed inset-0 z-[99999] flex items-start justify-center pt-[15vh] bg-black/60 backdrop-blur-sm"
+      className={cn(
+        "fixed inset-0 z-[99999] flex items-start justify-center pt-[15vh] bg-black/60 backdrop-blur-sm",
+        isClosing ? "animate-out fade-out duration-150" : "animate-in fade-in duration-100",
+      )}
       onMouseDown={(e) => {
-        if (e.target === e.currentTarget) closeQuickSwitcher();
+        if (e.target === e.currentTarget) requestClose();
       }}
     >
-      <div className="w-[520px] bg-background border-2 border-border shadow-retro flex flex-col animate-retro-shutter max-h-[60vh]">
+      <div
+        className={cn(
+          "w-[520px] bg-background border-2 border-border shadow-retro flex flex-col max-h-[60vh]",
+          isClosing ? "animate-retro-shutter-close" : "animate-retro-shutter",
+        )}
+      >
         {/* Header */}
         <div className="h-7 bg-element flex items-center gap-2 px-3 border-b border-border select-none flex-shrink-0">
           <Search size={12} className="text-accent flex-shrink-0" />

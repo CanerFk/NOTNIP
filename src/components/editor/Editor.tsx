@@ -16,7 +16,7 @@ import ListItem from "@tiptap/extension-list-item";
 import Blockquote from "@tiptap/extension-blockquote";
 import HardBreak from "@tiptap/extension-hard-break";
 import HorizontalRule from "@tiptap/extension-horizontal-rule";
-import History from "@tiptap/extension-history"; // Restoring History
+import History from "@tiptap/extension-history";
 import GapCursor from "@tiptap/extension-gapcursor";
 
 import Placeholder from "@tiptap/extension-placeholder";
@@ -58,10 +58,12 @@ import { TableBlock } from "./extensions/TableBlock";
 import { ToggleBlock } from "./extensions/ToggleBlock";
 import { assetManager } from "../../lib/AssetManager";
 import Code from "@tiptap/extension-code";
+import { Color } from "@tiptap/extension-color";
+import { TextStyle } from "@tiptap/extension-text-style";
 import Link from "@tiptap/extension-link";
 import { SearchAndReplace } from "./extensions/SearchAndReplace";
 import { SearchBar } from "./SearchBar";
-import { BacklinksPanel } from "./BacklinksPanel";
+import { BubbleMenuComponent } from "./BubbleMenuComponent";
 
 const lowlight = createLowlight({});
 lowlight.register("rust", rust);
@@ -86,7 +88,6 @@ const EscapeNodeConfig = Extension.create({
         const { $head } = selection;
         const isAtEnd = $head.pos >= doc.content.size - 2;
 
-        // Case 1: In a nested block (like blockquote, toggleBlock) at an empty paragraph
         if (
           $head.parent.type.name === "paragraph" &&
           $head.parent.textContent === ""
@@ -95,25 +96,20 @@ const EscapeNodeConfig = Extension.create({
           if (depth > 1) {
             const parentEndPos = $head.end(depth - 1);
 
-            // Are we at the very last empty paragraph of this block?
             if ($head.pos >= parentEndPos - 1) {
               const blockAfterPos = $head.after(depth - 1);
               const tr = state.tr;
-
-              // Delete the empty paragraph inside the block
               tr.delete($head.before(), $head.after());
 
               const mappedBlockAfterPos = tr.mapping.map(blockAfterPos);
               const nodeAfter = tr.doc.nodeAt(mappedBlockAfterPos);
 
               if (nodeAfter) {
-                // Just move cursor to the existing node below
-                const newPos = tr.doc.resolve(mappedBlockAfterPos + 1); // +1 gets inside the node
+                const newPos = tr.doc.resolve(mappedBlockAfterPos + 1);
                 tr.setSelection(
                   (state.selection.constructor as any).near(newPos),
                 );
               } else {
-                // At doc end, create a new paragraph below
                 const newPara = state.schema.nodes.paragraph.create();
                 tr.insert(mappedBlockAfterPos, newPara);
                 const newPos = tr.doc.resolve(mappedBlockAfterPos + 1);
@@ -128,7 +124,6 @@ const EscapeNodeConfig = Extension.create({
           }
         }
 
-        // Case 2: At document end escape (for raw blocks without paragraphs like iframes)
         if (isAtEnd) {
           if ($head.parent.type.name !== "paragraph") {
             return editor.commands.command(({ tr, dispatch }) => {
@@ -407,7 +402,6 @@ export function Editor({
     [showExportSuccess],
   );
 
-  // Metadata from store (title, icon, etc)
   const activePageMeta = useMemo(
     () => pages.find((p) => p.id === activePageId),
     [pages, activePageId],
@@ -433,7 +427,6 @@ export function Editor({
   const editor = useEditor(
     {
       extensions: [
-        // Base Extensions
         Document,
         Paragraph,
         Text,
@@ -530,10 +523,9 @@ export function Editor({
             };
           },
         }),
-        History, // Managed by Tiptap now
+        History,
         GapCursor,
 
-        // Other Extensions
         ToggleBlock,
         Placeholder.configure({
           placeholder: "Type '/' for commands...",
@@ -567,6 +559,8 @@ export function Editor({
             };
           },
         }).configure({ lowlight }),
+        Color,
+        TextStyle,
         ResizableImage.extend({
           addAttributes() {
             return {
@@ -594,7 +588,6 @@ export function Editor({
         Iframe,
         SubpageItem,
 
-        // Table Extensions
         TableBlock,
         Table.extend({
           addAttributes() {
@@ -632,7 +625,6 @@ export function Editor({
         TableCell,
         TableHeader,
 
-        // Links
         Link.configure({
           openOnClick: false,
           autolink: true,
@@ -641,7 +633,6 @@ export function Editor({
         }),
         LinkShortcut,
 
-        // Search
         SearchAndReplace.configure({
           onOpen: () => setIsSearchOpen(true),
           onClose: () => setIsSearchOpen(false),
@@ -681,7 +672,7 @@ export function Editor({
             event.preventDefault();
 
             const processFile = async () => {
-              const MAX_SIZE = 5 * 1024 * 1024; // 5MB
+              const MAX_SIZE = 5 * 1024 * 1024; 
               const { schema } = view.state;
 
               if (file.size > MAX_SIZE) {
@@ -721,7 +712,6 @@ export function Editor({
                 return;
               }
 
-              // Normal Upload for < 5MB
               const metadata = await assetManager.uploadFile(file);
               if (!metadata) return;
 
@@ -766,8 +756,8 @@ export function Editor({
                   const { confirm, open } =
                     await import("@tauri-apps/plugin-dialog");
                   const wantLocal = await confirm(
-                    `Bu dosya (${(file.size / 1024 / 1024).toFixed(1)} MB) Notnip'in 5MB sınırını aşıyor. Büyük dosyaları sistem hafızasında saklamak performansı düşürebilir.\n\nBunu sisteme kopyalamak yerine sadece bilgisayarındaki "Lokal Yoluna Link Vermek" ister misin? (Önerilen)`,
-                    { title: "Dosya Çok Büyük (5MB Sınırı)", kind: "warning" },
+                    `This file (${(file.size / 1024 / 1024).toFixed(1)} MB) is too large. Storing large files in system memory can degrade performance.\n\nInstead of copying it to the system, would you like to just "Link to Local Path" on your computer? (Recommended)`,
+                    { title: "File Too Large (5MB Limit)", kind: "warning" }
                   );
 
                   if (wantLocal) {
@@ -799,7 +789,6 @@ export function Editor({
                   return;
                 }
 
-                // Normal Upload for < 5MB
                 const metadata = await assetManager.uploadFile(file);
                 if (!metadata) return;
 
@@ -895,10 +884,10 @@ export function Editor({
 
     return () => {
       isMounted = false;
+      useStore.getState().flushSaveContent();
     };
   }, [activePageId, editor]);
 
-  // Sync Title Local State
   useEffect(() => {
     if (activePageMeta) {
       setTitle(activePageMeta.title);
@@ -919,7 +908,6 @@ export function Editor({
     );
   }
 
-  // Non-blocking loader via status bar (implementation below) or standard view with overlay
 
   return (
     <div className="flex flex-col h-full w-full bg-background relative overflow-hidden transition-colors duration-300">
@@ -1045,9 +1033,8 @@ export function Editor({
 
           {/* Editor Content */}
           <EditorContent editor={editor} />
+          {editor && <BubbleMenuComponent editor={editor} />}
 
-          {/* Backlinks */}
-          {activePageId && <BacklinksPanel activePageId={activePageId} />}
         </div>
       </div>
 

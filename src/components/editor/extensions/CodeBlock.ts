@@ -4,8 +4,8 @@ import { CodeBlockView } from './CodeBlockView.tsx';
 
 export const CodeBlock = CodeBlockLowlight.extend({
     isolating: true,
-    selectable: false, // CRITICAL: Prevents cursor from selecting the node
-    draggable: false, // Prevent drag-and-drop
+    selectable: false,
+    draggable: false,
 
     addKeyboardShortcuts() {
         return {
