@@ -139,6 +139,14 @@ interface StoreState {
   };
   updatePomodoro: (state: Partial<StoreState["pomodoroState"]>) => void;
 
+  stopwatchState: {
+    isRunning: boolean;
+    startedAt: number | null;
+    elapsedMs: number;
+    laps: { id: string; elapsedMs: number }[];
+  };
+  updateStopwatch: (state: Partial<StoreState["stopwatchState"]>) => void;
+
   isFocusMode: boolean;
   toggleFocusMode: () => void;
 
@@ -364,6 +372,17 @@ export const useStore = create<StoreState>()(
       updatePomodoro: (newState) =>
         set((state) => ({
           pomodoroState: { ...state.pomodoroState, ...newState },
+        })),
+
+      stopwatchState: {
+        isRunning: false,
+        startedAt: null,
+        elapsedMs: 0,
+        laps: [],
+      },
+      updateStopwatch: (newState) =>
+        set((state) => ({
+          stopwatchState: { ...state.stopwatchState, ...newState },
         })),
 
       isFocusMode: false,
@@ -615,6 +634,7 @@ export const useStore = create<StoreState>()(
         panels: state.panels,
         quickNotes: state.quickNotes || [],
         pomodoroState: state.pomodoroState,
+        stopwatchState: state.stopwatchState,
         calendarTodosByDate: state.calendarTodosByDate,
         sidebarWidth: state.sidebarWidth,
         editorAppearance: state.editorAppearance,

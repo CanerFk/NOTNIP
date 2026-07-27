@@ -35,7 +35,7 @@ export function CalendarPanel() {
 
     const todayStr = new Date().toISOString().split('T')[0];
     const isToday = calendarSelectedDate === todayStr;
-    const displayDateStr = new Date(calendarSelectedDate).toLocaleDateString(undefined, { month: 'short', day: 'numeric', weekday: 'short' });
+    const displayDateStr = new Date(calendarSelectedDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', weekday: 'short' });
 
     return (
         <div className="h-full flex flex-col font-mono text-sm bg-background">

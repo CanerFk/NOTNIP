@@ -13,6 +13,7 @@ import {
   Calendar,
   Star,
   Clock,
+  Clock3,
   Zap,
 } from "lucide-react";
 import { cn } from "../../lib/utils";
@@ -336,6 +337,11 @@ export function Sidebar() {
               icon={<Timer size={18} />}
               label="POMODORO"
               onClick={() => openPanel("pomodoro")}
+            />
+            <SidebarItem
+              icon={<Clock3 size={18} />}
+              label="STOPWATCH"
+              onClick={() => openPanel("stopwatch")}
             />
             <SidebarItem
               icon={<StickyNote size={18} />}

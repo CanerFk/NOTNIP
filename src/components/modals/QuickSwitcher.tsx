@@ -6,6 +6,7 @@ import {
   Settings,
   Sun,
   Timer,
+  Clock3,
   StickyNote,
   Calendar,
 } from "lucide-react";
@@ -131,6 +132,16 @@ export function QuickSwitcher() {
         icon: <Timer size={14} />,
         action: () => {
           openPanel("pomodoro");
+          requestClose();
+        },
+      },
+      {
+        kind: "command" as const,
+        id: "stopwatch",
+        label: "Open Stopwatch",
+        icon: <Clock3 size={14} />,
+        action: () => {
+          openPanel("stopwatch");
           requestClose();
         },
       },
