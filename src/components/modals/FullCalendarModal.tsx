@@ -19,7 +19,7 @@ export function FullCalendarModal() {
 
     const offset = firstDayOfMonth === 0 ? 6 : firstDayOfMonth - 1;
 
-    const monthStr = viewDate.toLocaleDateString(undefined, { month: 'long', year: 'numeric' });
+    const monthStr = viewDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
 
     const handleDayClick = (dayNumber: number) => {
         const newDate = new Date(currentYear, currentMonth, dayNumber);
