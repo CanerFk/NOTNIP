@@ -56,12 +56,16 @@ function App() {
 
       const key = e.key.toLowerCase();
 
-      if (key === "f") {
+
+      if (key === "p") {
         e.preventDefault();
+        openQuickSwitcher();
         return;
       }
 
-      if (key === "k" || key === "p") {
+      if (key === "k") {
+        const target = e.target as HTMLElement | null;
+        if (target?.closest(".ProseMirror")) return;
         e.preventDefault();
         openQuickSwitcher();
         return;

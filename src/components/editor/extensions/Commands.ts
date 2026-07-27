@@ -97,10 +97,8 @@ export const Commands = Extension.create({
         ...this.options.suggestion,
         allow: ({ state, range }: { state: any; range: any }) => {
           const $from = state.doc.resolve(range.from);
-          if (
-            $from.parent.type.name !== "paragraph" &&
-            !$from.parent.type.name.startsWith("heading")
-          ) {
+          const parentType = $from.parent.type.name;
+          if (parentType !== "paragraph" && !parentType.startsWith("heading")) {
             return false;
           }
           const disallowed = [
@@ -120,7 +118,7 @@ export const Commands = Extension.create({
             0,
             range.from - $from.start(),
           );
-          if (textBefore.length > 0 && !/[\s]$/.test(textBefore)) {
+          if (textBefore.length > 0 && !/\s$/.test(textBefore)) {
             return false;
           }
           return true;
@@ -131,16 +129,8 @@ export const Commands = Extension.create({
 });
 
 const convertOrSplitBlock = (editor: any, range: any, action: () => void) => {
-  const { state } = editor;
-  const $from = state.doc.resolve(range.from);
-
-  if ($from.parent.textContent.length === range.to - range.from) {
-    editor.chain().focus().deleteRange(range).run();
-    action();
-  } else {
-    editor.chain().focus().deleteRange(range).splitBlock().run();
-    action();
-  }
+  editor.chain().focus().deleteRange(range).run();
+  action();
 };
 
 function resolveColor(
@@ -185,6 +175,7 @@ export const getSuggestionItems = ({ query }: { query: string }) => {
 
   const items = [
     {
+      group: "Basic Blocks",
       title: "Text",
       icon: ICON_TYPE,
       flags: [] as CommandFlag[],
@@ -195,6 +186,7 @@ export const getSuggestionItems = ({ query }: { query: string }) => {
       },
     },
     {
+      group: "Basic Blocks",
       title: "Heading 1",
       icon: ICON_H1,
       flags: [{ key: "c", label: "Color" }] as CommandFlag[],
@@ -206,6 +198,7 @@ export const getSuggestionItems = ({ query }: { query: string }) => {
       },
     },
     {
+      group: "Basic Blocks",
       title: "Heading 2",
       icon: ICON_H2,
       flags: [{ key: "c", label: "Color" }] as CommandFlag[],
@@ -217,6 +210,7 @@ export const getSuggestionItems = ({ query }: { query: string }) => {
       },
     },
     {
+      group: "Basic Blocks",
       title: "Heading 3",
       icon: ICON_H2,
       flags: [{ key: "c", label: "Color" }] as CommandFlag[],
@@ -228,6 +222,7 @@ export const getSuggestionItems = ({ query }: { query: string }) => {
       },
     },
     {
+      group: "Basic Blocks",
       title: "Bullet List",
       icon: ICON_LIST,
       flags: [
@@ -277,6 +272,7 @@ export const getSuggestionItems = ({ query }: { query: string }) => {
       },
     },
     {
+      group: "Basic Blocks",
       title: "Numbered List",
       icon: ICON_LIST_ORDERED,
       flags: [
@@ -326,6 +322,7 @@ export const getSuggestionItems = ({ query }: { query: string }) => {
       },
     },
     {
+      group: "Basic Blocks",
       title: "Task List",
       icon: ICON_CHECK,
       flags: [{ key: "t", label: "Toggleable" }] as CommandFlag[],
@@ -355,6 +352,7 @@ export const getSuggestionItems = ({ query }: { query: string }) => {
       },
     },
     {
+      group: "Basic Blocks",
       title: "Code Block",
       icon: ICON_CODE,
       flags: [
@@ -370,6 +368,7 @@ export const getSuggestionItems = ({ query }: { query: string }) => {
       },
     },
     {
+      group: "Basic Blocks",
       title: "Quote",
       icon: ICON_QUOTE,
       flags: [{ key: "a", label: "Author" }] as CommandFlag[],
@@ -404,6 +403,7 @@ export const getSuggestionItems = ({ query }: { query: string }) => {
       },
     },
     {
+      group: "Basic Blocks",
       title: "Table",
       icon: ICON_GRID,
       flags: [{ key: "c", label: "Color" }] as CommandFlag[],
@@ -466,6 +466,7 @@ export const getSuggestionItems = ({ query }: { query: string }) => {
       },
     },
     {
+      group: "Basic Blocks",
       title: "Toggle",
       icon: ICON_CHEVRON,
       flags: [
@@ -499,6 +500,7 @@ export const getSuggestionItems = ({ query }: { query: string }) => {
       },
     },
     {
+      group: "Basic Blocks",
       title: "Divider",
       icon: ICON_MINUS,
       flags: [
@@ -538,6 +540,7 @@ export const getSuggestionItems = ({ query }: { query: string }) => {
       },
     },
     {
+      group: "Media",
       title: "Image",
       icon: ICON_IMAGE,
       flags: [
@@ -569,7 +572,7 @@ export const getSuggestionItems = ({ query }: { query: string }) => {
                   multiple: false,
                   filters: [
                     {
-                      name: "Resim",
+                      name: "Image",
                       extensions: ["png", "jpg", "jpeg", "webp", "gif"],
                     },
                   ],
@@ -613,6 +616,7 @@ export const getSuggestionItems = ({ query }: { query: string }) => {
       },
     },
     {
+      group: "Media",
       title: "PDF Document",
       icon: ICON_FILE_TEXT,
       flags: [] as CommandFlag[],
@@ -673,6 +677,7 @@ export const getSuggestionItems = ({ query }: { query: string }) => {
       },
     },
     {
+      group: "Structure",
       title: "Subpage",
       icon: ICON_FOLDER,
       flags: [] as CommandFlag[],
@@ -693,6 +698,7 @@ export const getSuggestionItems = ({ query }: { query: string }) => {
       },
     },
     ...BUILT_IN_TEMPLATES.map((tpl) => ({
+      group: "Templates",
       title: `Template: ${tpl.title}`,
       icon: ICON_FILE_TEXT,
       flags: [] as CommandFlag[],
