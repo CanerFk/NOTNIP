@@ -3,6 +3,7 @@ import { RetroPanel } from './RetroPanel';
 import { QuickNotePanel } from './QuickNotePanel';
 import { PomodoroPanel } from './PomodoroPanel';
 import { CalendarPanel } from './CalendarPanel';
+import { StopwatchPanel } from './StopwatchPanel';
 
 export function PanelManager() {
     const panels = useStore(state => state.panels);
@@ -17,6 +18,8 @@ export function PanelManager() {
                 return <PomodoroPanel />;
             case 'calendar':
                 return <CalendarPanel />;
+            case 'stopwatch':
+                return <StopwatchPanel />;
             default:
                 return <div className="p-4 text-muted">Unknown panel type</div>;
         }
@@ -30,6 +33,8 @@ export function PanelManager() {
                 return 'Pomodoro';
             case 'calendar':
                 return 'Calendar & Tasks';
+            case 'stopwatch':
+                return 'Stopwatch';
             default:
                 return 'Panel';
         }
@@ -41,6 +46,8 @@ export function PanelManager() {
                 return { width: 280, height: 380 };
             case 'calendar':
                 return { width: 280, height: 380 };
+            case 'stopwatch':
+                return { width: 340, height: 390 };
             case 'quicknote':
                 return { width: 340, height: 340 };
             default:
