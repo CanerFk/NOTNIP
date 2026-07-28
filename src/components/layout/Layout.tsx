@@ -3,6 +3,7 @@ import { Titlebar } from "./Titlebar";
 import { useStore } from "../../store/useStore";
 import { SettingsModal } from "../modals/SettingsModal";
 import { FullCalendarModal } from "../modals/FullCalendarModal";
+import { WelcomeModal } from "../modals/WelcomeModal";
 import { ThemeManager } from "../ThemeManager";
 import { PanelManager } from "../panels/PanelManager";
 import { QuickSwitcher } from "../modals/QuickSwitcher";
@@ -153,6 +154,8 @@ export function Layout({
       <QuickSwitcher />
 
       <PanelManager />
+
+      <WelcomeModal />
 
       {isFocusMode && (
         <button

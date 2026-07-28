@@ -186,6 +186,10 @@ interface StoreState {
   openQuickSwitcher: () => void;
   closeQuickSwitcher: () => void;
 
+  hasSeenWelcome: boolean;
+  dismissWelcome: () => void;
+  reopenWelcome: () => void;
+
   openOrCreateDailyNote: () => Promise<void>;
 }
 
@@ -626,6 +630,10 @@ export const useStore = create<StoreState>()(
       deletionCandidateCleanup: null,
       setDeletionCandidateId: (id, cleanup = null) =>
         set({ deletionCandidateId: id, deletionCandidateCleanup: cleanup }),
+
+      hasSeenWelcome: false,
+      dismissWelcome: () => set({ hasSeenWelcome: true }),
+      reopenWelcome: () => set({ hasSeenWelcome: false }),
     }),
     {
       name: "notnip-storage",
@@ -640,6 +648,7 @@ export const useStore = create<StoreState>()(
         editorAppearance: state.editorAppearance,
         favoritePageIds: state.favoritePageIds,
         recentPageIds: state.recentPageIds,
+        hasSeenWelcome: state.hasSeenWelcome,
       }),
     },
   ),

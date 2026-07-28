@@ -31,6 +31,7 @@ export function SettingsModal() {
   );
 
   const storeSettingsTab = useStore((state) => state.settingsTab);
+  const reopenWelcome = useStore((state) => state.reopenWelcome);
   const [activeTab, setActiveTab] = useState<Tab>(storeSettingsTab as Tab);
   const [isClosing, setIsClosing] = useState(false);
   const [showConfirmCancel, setShowConfirmCancel] = useState(false);
@@ -435,14 +436,23 @@ export function SettingsModal() {
 
             {activeTab === "guide" && (
               <div className="space-y-10 animate-in fade-in slide-in-from-right-4 duration-300 pb-12">
+                <div className="flex items-start justify-between gap-4 mb-2">
                 <div>
-                  <h3 className="text-sm font-mono font-bold text-accent mb-3 uppercase tracking-widest border-b-2 border-accent pb-2 inline-block">
+                  <h3 className="text-sm font-mono font-bold text-accent mb-1 uppercase tracking-widest border-b-2 border-accent pb-2 inline-block">
                     ~ Welcome to Notnip ~
                   </h3>
-                  <p className="text-sm text-main/90 leading-relaxed font-mono">
+                  <p className="text-sm text-main/90 leading-relaxed font-mono mt-2">
                     A calm, completely local workspace built for performance. Let's make it yours.
                   </p>
                 </div>
+                <button
+                  onClick={() => { reopenWelcome(); executeClose(); }}
+                  className="flex-shrink-0 px-3 py-1.5 bg-element border border-border shadow-retro-sm font-mono text-[11px] uppercase tracking-wider text-muted hover:text-accent hover:border-accent transition-colors whitespace-nowrap"
+                  title="Reopen the Quick Tour"
+                >
+                  Quick Tour
+                </button>
+              </div>
 
                 {/* Command Menu & Flags */}
                 <div className="space-y-4">
