@@ -598,7 +598,7 @@ export function SettingsModal() {
                 className={cn(
                   "px-8 py-2 text-xs font-mono font-bold transition-all border-2 focus:outline-none",
                   hasChanges
-                    ? "bg-accent text-background border-accent shadow-retro-sm hover:-translate-y-0.5 hover:-translate-x-0.5"
+                    ? "bg-accent text-[var(--bg-primary)] border-accent shadow-retro-sm hover:-translate-y-0.5 hover:-translate-x-0.5"
                     : "bg-element text-muted border-border opacity-50 cursor-not-allowed"
                 )}
               >
@@ -677,13 +677,13 @@ function ConfirmCancelModal({
         )}
       >
         <div className="h-7 bg-element flex items-center justify-between px-2 border-b border-border select-none">
-          <span className="text-xs font-mono font-bold text-gruv-orange uppercase tracking-wider">
+          <span className="text-xs font-mono font-bold text-accent-orange uppercase tracking-wider">
             Unsaved Changes
           </span>
           <button
             type="button"
             onClick={handleCancel}
-            className="w-5 h-5 flex items-center justify-center border-l border-border bg-element hover:bg-gruv-orange hover:text-white transition-all"
+            className="w-5 h-5 flex items-center justify-center border-l border-border bg-element hover:bg-accent-orange hover:text-white transition-all"
           >
             <X size={14} />
           </button>
@@ -692,7 +692,7 @@ function ConfirmCancelModal({
         <div className="p-5 flex items-start gap-4">
           <AlertTriangle
             size={28}
-            className="text-gruv-orange flex-shrink-0 mt-0.5"
+            className="text-accent-orange flex-shrink-0 mt-0.5"
           />
           <p className="text-sm text-main font-mono leading-relaxed">
             Are you sure you want to exit without saving? All changes will be lost.
@@ -711,7 +711,7 @@ function ConfirmCancelModal({
           <button
             type="button"
             onClick={handleConfirm}
-            className="px-5 py-2 text-xs font-mono font-bold bg-gruv-orange text-background border-2 border-gruv-orange hover:bg-opacity-90 transition-colors focus:outline-none"
+            className="px-5 py-2 text-xs font-mono font-bold bg-accent-orange text-[var(--bg-primary)] border-2 border-accent-orange hover:opacity-90 transition-opacity focus:outline-none"
           >
             EXIT
           </button>
